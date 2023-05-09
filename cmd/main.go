@@ -17,7 +17,6 @@ func main() {
 		panic(err)
 	}
 
-	m.Run()
 	if err = m.Run(); err != nil {
 		panic(err)
 	}

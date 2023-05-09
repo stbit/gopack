@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/stbit/gopack/pkg/manager/parser"
 )
 
 type SourceFile struct {
@@ -44,9 +46,9 @@ func (s *SourceFile) Parse() error {
 		return err
 	}
 
-	p := newParseFile(s.sourcePath)
+	p := parser.NewParseFile(s.sourcePath)
 
-	if err := p.parse(s.distPath); err != nil {
+	if err := p.Parse(s.distPath); err != nil {
 		return err
 	}
 

@@ -1,5 +1,7 @@
 package manager
 
+import "os"
+
 type Manager struct {
 	rootPath string
 	files    []*SourceFile
@@ -15,6 +17,10 @@ func NewManager(rootPath string) (*Manager, error) {
 }
 
 func (m *Manager) parse() error {
+	if err := os.RemoveAll(m.rootPath + "/dist"); err != nil {
+		return err
+	}
+
 	for _, v := range m.files {
 		if err := v.Parse(); err != nil {
 			return err
