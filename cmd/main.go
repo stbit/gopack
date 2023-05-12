@@ -1,7 +1,9 @@
 package main
 
 import (
+	"log"
 	"os"
+	"time"
 
 	"github.com/stbit/gopack/pkg/manager"
 )
@@ -12,7 +14,8 @@ func main() {
 		panic(err)
 	}
 
-	m, err := manager.NewManager(path)
+	start := time.Now()
+	m, err := manager.NewManager(path + string(os.PathSeparator) + "example")
 	if err != nil {
 		panic(err)
 	}
@@ -20,4 +23,6 @@ func main() {
 	if err = m.Run(); err != nil {
 		panic(err)
 	}
+	elapsed := time.Since(start)
+	log.Printf("Finish %s", elapsed)
 }

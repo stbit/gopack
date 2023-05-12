@@ -1,7 +1,6 @@
-package parser2
+package parser
 
 import (
-	"fmt"
 	"path/filepath"
 
 	"golang.org/x/exp/slices"
@@ -42,9 +41,7 @@ func LoadPackages(l []string) {
 		})
 	}
 
-	f := lprog[0]
-
-	fmt.Println(lprog, f, f.EmbedFiles, f.GoFiles, f.Module.Path)
-
-	pkgs[5].Save()
+	for _, p := range pkgs {
+		p.Save()
+	}
 }

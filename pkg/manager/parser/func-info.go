@@ -1,4 +1,4 @@
-package parser2
+package parser
 
 import (
 	"fmt"
@@ -9,17 +9,22 @@ import (
 func getFuncResults(p *SourcePackage, c *ast.CallExpr) *types.Tuple {
 	switch s := c.Fun.(type) {
 	case *ast.Ident:
-		if !p.pkg.TypesInfo.Types[s].IsType() {
-			if use, ok := p.pkg.TypesInfo.Uses[s]; ok {
-				fmt.Println(s)
-				return use.Type().(*types.Signature).Results()
-			}
-		}
+		return resolveFuncResults(p, s)
+
 	case *ast.SelectorExpr:
-		if s.Sel != nil && !p.pkg.TypesInfo.Types[s.Sel].IsType() {
-			if use, ok := p.pkg.TypesInfo.Uses[s.Sel]; ok {
-				fmt.Println(s)
-				return use.Type().(*types.Signature).Results()
+		if s.Sel != nil {
+			return resolveFuncResults(p, s.Sel)
+		}
+	}
+
+	return nil
+}
+
+func resolveFuncResults(p *SourcePackage, id *ast.Ident) *types.Tuple {
+	if !p.pkg.TypesInfo.Types[id].IsType() {
+		if use, ok := p.pkg.TypesInfo.Uses[id]; ok {
+			if s, ok := use.Type().(*types.Signature); ok {
+				return s.Results()
 			}
 		}
 	}

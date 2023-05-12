@@ -1,14 +1,12 @@
-package parser2
+package parser
 
 import (
-	"fmt"
 	"go/ast"
 	"go/printer"
 	"os"
 	"path/filepath"
 	"strings"
 
-	"github.com/davecgh/go-spew/spew"
 	"golang.org/x/tools/go/packages"
 )
 
@@ -17,7 +15,6 @@ type SourcePackage struct {
 }
 
 func (p *SourcePackage) Save() {
-	spew.Dump(p.pkg)
 	for i := range p.pkg.GoFiles {
 		file := p.pkg.Syntax[i]
 		parseAstFile(p, file)
@@ -26,7 +23,6 @@ func (p *SourcePackage) Save() {
 	for i, f := range p.pkg.GoFiles {
 		file := p.pkg.Syntax[i]
 		distPath := strings.Replace(f, p.pkg.Module.Dir, p.pkg.Module.Dir+string(os.PathSeparator)+"dist", 1)
-		fmt.Println(f, p.pkg.Module.Dir, distPath)
 		p.saveDistFile(distPath, file)
 	}
 }
@@ -43,7 +39,9 @@ func (p *SourcePackage) saveDistFile(distPath string, file *ast.File) error {
 
 	defer of.Close()
 
-	printer.Fprint(of, p.pkg.Fset, file)
+	if err = printer.Fprint(of, p.pkg.Fset, file); err != nil {
+		return err
+	}
 
 	return nil
 }

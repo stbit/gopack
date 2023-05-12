@@ -1,42 +1,52 @@
 package manager
 
 import (
+	"io/fs"
 	"os"
+	"path/filepath"
+	"strings"
 
-	"github.com/stbit/gopack/pkg/manager/parser2"
+	"github.com/stbit/gopack/pkg/manager/parser"
 )
 
 type Manager struct {
 	rootPath string
-	files    []*SourceFile
 }
 
 func NewManager(rootPath string) (*Manager, error) {
-	files, err := loadSourceFiles(rootPath)
-	if err != nil {
-		return nil, err
-	}
+	return &Manager{rootPath: rootPath}, nil
+}
 
-	return &Manager{rootPath: rootPath, files: files}, nil
+func (m *Manager) loadSourceFiles() ([]string, error) {
+	r := []string{}
+
+	err := filepath.Walk(m.rootPath, func(path string, info fs.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if !info.IsDir() && strings.HasSuffix(path, ".go") && !strings.Contains(path, "dist"+string(os.PathSeparator)) {
+			r = append(r, path)
+		}
+
+		return nil
+	})
+
+	return r, err
 }
 
 func (m *Manager) parse() error {
-	if err := os.RemoveAll(m.rootPath + "/dist"); err != nil {
+	distPath := m.rootPath + string(os.PathSeparator) + "dist"
+	if err := os.RemoveAll(distPath); err != nil {
 		return err
 	}
 
-	l := []string{}
-
-	for _, v := range m.files {
-		l = append(l, v.sourcePath)
+	l, err := m.loadSourceFiles()
+	if err != nil {
+		return err
 	}
-	parser2.LoadPackages(l)
 
-	// for _, v := range m.files {
-	// 	if err := v.Parse(); err != nil {
-	// 		return err
-	// 	}
-	// }
+	parser.LoadPackages(l)
 
 	return nil
 }

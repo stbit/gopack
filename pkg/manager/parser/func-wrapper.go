@@ -1,28 +1,21 @@
 package parser
 
-import "go/ast"
+import (
+	"go/ast"
+	"strconv"
+)
 
 type funcWrapper struct {
-	node *ast.Node
+	node  ast.Node
+	errId int
 }
 
-func newFuncWrapper(n *ast.Node) *funcWrapper {
+func newFuncWrapper(p *SourcePackage, n ast.Node) *funcWrapper {
 	return &funcWrapper{node: n}
 }
 
-func (f *funcWrapper) getParams() *ast.FieldList {
-	switch x := (*f.node).(type) {
-	case *ast.FuncLit:
-		return x.Type.Params
-	case *ast.FuncDecl:
-		return x.Type.Params
-	}
-
-	panic("not func declaration")
-}
-
 func (f *funcWrapper) getResults() *ast.FieldList {
-	switch x := (*f.node).(type) {
+	switch x := f.node.(type) {
 	case *ast.FuncLit:
 		return x.Type.Results
 	case *ast.FuncDecl:
@@ -33,7 +26,7 @@ func (f *funcWrapper) getResults() *ast.FieldList {
 }
 
 func (f *funcWrapper) getName() string {
-	switch x := (*f.node).(type) {
+	switch x := f.node.(type) {
 	case *ast.FuncLit:
 		return "anonimus"
 	case *ast.FuncDecl:
@@ -41,6 +34,11 @@ func (f *funcWrapper) getName() string {
 	}
 
 	panic("not func declaration")
+}
+
+func (f *funcWrapper) getNextErrorName() string {
+	f.errId++
+	return "err_" + strconv.Itoa(f.errId)
 }
 
 func (f *funcWrapper) hasErrorResults() bool {
