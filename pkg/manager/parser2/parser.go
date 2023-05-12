@@ -4,120 +4,106 @@ import (
 	"fmt"
 	"go/ast"
 	"go/token"
-	"strconv"
 
 	"honnef.co/go/tools/go/ast/astutil"
 )
 
+type replceStmt struct {
+	parentNode ast.Node
+	callExpr   *ast.CallExpr
+	fw         *funcWrapper
+	lhs        []ast.Expr
+}
+
 func parseAstFile(p *SourcePackage, file *ast.File) {
-	astutil.Apply(file, func(c *astutil.Cursor) bool {
-		n := c.Node()
+	stmts := make(map[ast.Node]*replceStmt)
+
+	ast.Inspect(file, func(n ast.Node) bool {
 		switch n.(type) {
 		case *ast.FuncDecl:
-			c.Replace(replaceErrors(p, &n))
+			replaceErrors(p, stmts, n)
+		}
+
+		return true
+	})
+
+	astutil.Apply(file, func(c *astutil.Cursor) bool {
+		cn := c.Node()
+
+		if stmt, ok := stmts[cn]; ok {
+			replaceReturnErrorStmt(c, stmt.fw, stmt.lhs, stmt.callExpr)
 		}
 
 		return true
 	}, nil)
-
-	// astutil.Apply(file, nil, func(c *astutil.Cursor) bool {
-	// 	n := c.Node()
-	// 	switch x := n.(type) {
-	// 	case *ast.CallExpr:
-	// 		fmt.Println(x)
-	// 		switch s := x.Fun.(type) {
-	// 		case *ast.Ident:
-	// 			fmt.Print(s.Name, s.Obj)
-	// 		case *ast.SelectorExpr:
-	// 			obj := p.pkg.TypesInfo.Uses[s.Sel]
-	// 			fmt.Println("sel", s.Sel, p.pkg.TypesInfo.Uses[s.Sel])
-	// 			if f, ok := obj.(*types.Func); ok {
-	// 				ss := f.Type().(*types.Signature)
-	// 				fmt.Println(f.Type(), ss.Results().At(1).String(), ss.Results().At(1).Type().String() == "error")
-	// 				// fmt.Println(f.Type(), reflect.TypeOf(f.Type()).NumOut())
-	// 			}
-	// 		}
-	// 	}
-
-	// 	return true
-	// })
 }
 
-func replaceErrors(p *SourcePackage, n *ast.Node) ast.Node {
-	var parentNode *ast.Node
+func replaceErrors(p *SourcePackage, stmts map[ast.Node]*replceStmt, n ast.Node) {
+	var parentNode ast.Node
 
 	funcWrapper := newFuncWrapper(p, n)
-	errInc := 0
-	return astutil.Apply(*n, func(c *astutil.Cursor) bool {
-		cn := c.Node()
-		parentNode = &cn
-
-		if *n == cn {
+	ast.Inspect(n, func(cn ast.Node) bool {
+		if n == cn {
 			return true
 		}
 
 		switch x := cn.(type) {
-		case *ast.SelectStmt:
-			id, ok := x.Fun.(*ast.Ident)
-
-			if ok {
-				if id.Name == "funcWithOneError" {
-					c.Replace(&ast.UnaryExpr{
-						Op: token.NOT,
-						X:  x,
-					})
-				}
-			}
 		case *ast.FuncLit:
-			c.Replace(replaceErrors(p, &cn))
+			replaceErrors(p, stmts, cn)
 			return false
-		case *ast.ExprStmt:
-			if c := x.X.(*ast.CallExpr); c != nil {
-				if hasFuncError(p, c) {
-					fmt.Println("***************fds fsd fsdf sdf sdf sdf sdfsd ")
+		case *ast.CallExpr:
+			if fresults, ok := hasFuncResultsError(p, x); ok {
+				switch pn := (parentNode).(type) {
+				case *ast.AssignStmt:
+					if pn.Rhs[0] == x {
+						if lhs, ok := normolizeAssignStmt(p, pn.Lhs, fresults, funcWrapper.getNextErrorName()); ok {
+							stmts[parentNode] = &replceStmt{
+								parentNode: parentNode,
+								callExpr:   x,
+								lhs:        lhs,
+								fw:         funcWrapper,
+							}
+						}
+					}
+				case *ast.ExprStmt:
+					if pn.X == x {
+						if lhs, ok := normolizeAssignStmt(p, []ast.Expr{}, fresults, funcWrapper.getNextErrorName()); ok {
+							stmts[parentNode] = &replceStmt{
+								parentNode: parentNode,
+								callExpr:   x,
+								lhs:        lhs,
+								fw:         funcWrapper,
+							}
+						}
+					}
 				}
-			}
-		case *ast.AssignStmt:
-			l := x.Lhs[len(x.Lhs)-1]
-			v, ok := l.(*ast.Ident)
-
-			if ok && v.Name == "_" {
-
-				errInc++
-				v.Name = "err_" + strconv.Itoa(errInc)
-
-				c.InsertAfter(&ast.IfStmt{
-					Cond: &ast.BinaryExpr{
-						// err
-						X: &ast.Ident{Name: v.Name},
-						// !=
-						Op: token.NEQ,
-						// nil
-						Y: &ast.Ident{Name: "nil"},
-					},
-					Body: &ast.BlockStmt{
-						List: []ast.Stmt{
-							getReturnErrorStm(funcWrapper, v.Name),
-						},
-					},
-				})
 			}
 
 		// exit if nested func declaration
 		case *ast.FuncDecl:
 			return false
+
+		case *ast.AssignStmt, *ast.ExprStmt:
+			parentNode = cn
 		}
 
 		return true
-	}, nil)
+	})
 }
 
-func getReturnErrorStm(fw *funcWrapper, nameErr string) ast.Stmt {
-	fmt.Println(fw.getName())
-
+func replaceReturnErrorStmt(c *astutil.Cursor, fw *funcWrapper, lhs []ast.Expr, ce *ast.CallExpr) {
 	if !fw.hasErrorResults() {
 		panic(fmt.Errorf("func %s not return error", fw.getName()))
 	}
+
+	nameErr := lhs[len(lhs)-1].(*ast.Ident).Name
+	c.Replace(&ast.AssignStmt{
+		Lhs: lhs,
+		Tok: token.DEFINE,
+		Rhs: []ast.Expr{
+			ce,
+		},
+	})
 
 	results := make([]ast.Expr, 0)
 
@@ -136,7 +122,21 @@ func getReturnErrorStm(fw *funcWrapper, nameErr string) ast.Stmt {
 		}
 	}
 
-	return &ast.ReturnStmt{
-		Results: results,
-	}
+	c.InsertAfter(&ast.IfStmt{
+		Cond: &ast.BinaryExpr{
+			// err
+			X: &ast.Ident{Name: nameErr},
+			// !=
+			Op: token.NEQ,
+			// nil
+			Y: &ast.Ident{Name: "nil"},
+		},
+		Body: &ast.BlockStmt{
+			List: []ast.Stmt{
+				&ast.ReturnStmt{
+					Results: results,
+				},
+			},
+		},
+	})
 }

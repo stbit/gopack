@@ -10,6 +10,7 @@ import (
 )
 
 type SourceFile struct {
+	rootPath   string
 	sourcePath string
 	distPath   string
 }
@@ -18,6 +19,7 @@ func newSourceFile(rootPath string, sourcePath string) *SourceFile {
 	distPath := strings.Replace(sourcePath, rootPath, rootPath+"/dist", 1)
 
 	return &SourceFile{
+		rootPath:   rootPath,
 		sourcePath: sourcePath,
 		distPath:   distPath,
 	}

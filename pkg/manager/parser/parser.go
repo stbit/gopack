@@ -41,12 +41,16 @@ func (f *ParseFile) Parse(dist string) error {
 	return err
 }
 
-func parentFunc(filePath string, content string) (*token.FileSet, *ast.File) {
+func parentFunc(fpath string, content string) (*token.FileSet, *ast.File) {
 	fset := token.NewFileSet()
-	file, err := parser.ParseFile(fset, filePath, content, parser.ParseComments)
+	file, err := parser.ParseFile(fset, fpath, content, parser.ParseComments)
 	if err != nil {
 		panic(err)
 	}
+
+	// if err := parsetypes.Parse(filepath.Dir(fpath), fset, file); err != nil {
+	// 	panic(err)
+	// }
 
 	astutil.Apply(file, nil, func(c *astutil.Cursor) bool {
 		n := c.Node()

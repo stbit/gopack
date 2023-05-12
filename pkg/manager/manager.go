@@ -1,6 +1,10 @@
 package manager
 
-import "os"
+import (
+	"os"
+
+	"github.com/stbit/gopack/pkg/manager/parser2"
+)
 
 type Manager struct {
 	rootPath string
@@ -21,11 +25,18 @@ func (m *Manager) parse() error {
 		return err
 	}
 
+	l := []string{}
+
 	for _, v := range m.files {
-		if err := v.Parse(); err != nil {
-			return err
-		}
+		l = append(l, v.sourcePath)
 	}
+	parser2.LoadPackages(l)
+
+	// for _, v := range m.files {
+	// 	if err := v.Parse(); err != nil {
+	// 		return err
+	// 	}
+	// }
 
 	return nil
 }
