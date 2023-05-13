@@ -61,6 +61,10 @@ func showHello() (string, func(int) int, Profile, *Profile, int, error) {
 	withOneError("simple with error")
 	utils.Sum(1, 2)
 
+	if err := withOneError("simple with error"); err != nil {
+		return "", nil, Profile{}, nil, 0, nil
+	}
+
 	_ = err
 	k, _ := f()()
 	r, _ := utils.Sum(1, 2)

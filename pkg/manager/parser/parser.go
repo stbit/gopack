@@ -45,7 +45,7 @@ func parseAstFile(p *SourcePackage, file *ast.File) {
 func findReplacementExpr(p *SourcePackage, stmts map[ast.Node]replceStmt, n ast.Node) {
 	var parentNode ast.Node
 
-	funcWrapper := newFuncWrapper(p, n)
+	fnScope := newFunctionScope(p, n)
 	ast.Inspect(n, func(cn ast.Node) bool {
 		if n == cn {
 			return true
@@ -56,29 +56,32 @@ func findReplacementExpr(p *SourcePackage, stmts map[ast.Node]replceStmt, n ast.
 			findReplacementExpr(p, stmts, cn)
 			return false
 
+		case *ast.ReturnStmt:
+			return false
+
 		case *ast.CallExpr:
 			if fresults, ok := hasFuncResultsError(p, x); ok {
 				switch pn := (parentNode).(type) {
 				case *ast.AssignStmt:
 					if pn.Rhs[0] == x {
-						if lhs, needReplace := normolizeAssignStmt(p, pn.Lhs, fresults, funcWrapper.getNextErrorName()); needReplace {
+						if lhs, needReplace := normolizeAssignStmt(p, pn.Lhs, fresults, fnScope.getNextErrorName()); needReplace {
 							stmts[parentNode] = &replceCallExprStmt{
 								parentNode: parentNode,
 								callExpr:   x,
 								lhs:        lhs,
-								fw:         funcWrapper,
+								fnScope:    fnScope,
 							}
 						}
 					}
 
 				case *ast.ExprStmt:
 					if pn.X == x {
-						if lhs, needReplace := normolizeAssignStmt(p, []ast.Expr{}, fresults, funcWrapper.getNextErrorName()); needReplace {
+						if lhs, needReplace := normolizeAssignStmt(p, []ast.Expr{}, fresults, fnScope.getNextErrorName()); needReplace {
 							stmts[parentNode] = &replceCallExprStmt{
 								parentNode: parentNode,
 								callExpr:   x,
 								lhs:        lhs,
-								fw:         funcWrapper,
+								fnScope:    fnScope,
 							}
 						}
 					}

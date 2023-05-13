@@ -11,13 +11,13 @@ import (
 type replceCallExprStmt struct {
 	parentNode ast.Node
 	callExpr   *ast.CallExpr
-	fw         *funcWrapper
+	fnScope    *functionScope
 	lhs        []ast.Expr
 }
 
 func (s *replceCallExprStmt) replace(c *astutil.Cursor) {
-	if !s.fw.hasErrorResults() {
-		panic(fmt.Errorf("func %s not return error", s.fw.getName()))
+	if !s.fnScope.hasErrorResults() {
+		panic(fmt.Errorf("func %s not return error", s.fnScope.getName()))
 	}
 
 	nameErr := s.lhs[len(s.lhs)-1].(*ast.Ident).Name
@@ -29,10 +29,10 @@ func (s *replceCallExprStmt) replace(c *astutil.Cursor) {
 		},
 	})
 
-	fwResults := s.fw.getResults().List
-	results := make([]ast.Expr, len(fwResults))
+	fsResults := s.fnScope.getResults().List
+	results := make([]ast.Expr, len(fsResults))
 
-	for i, v := range fwResults {
+	for i, v := range fsResults {
 		switch x := v.Type.(type) {
 		case *ast.StarExpr:
 			results[i] = &ast.Ident{Name: "nil"}

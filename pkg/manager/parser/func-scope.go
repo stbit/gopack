@@ -5,16 +5,16 @@ import (
 	"strconv"
 )
 
-type funcWrapper struct {
+type functionScope struct {
 	node  ast.Node
 	errId int
 }
 
-func newFuncWrapper(p *SourcePackage, n ast.Node) *funcWrapper {
-	return &funcWrapper{node: n}
+func newFunctionScope(p *SourcePackage, n ast.Node) *functionScope {
+	return &functionScope{node: n}
 }
 
-func (f *funcWrapper) getResults() *ast.FieldList {
+func (f *functionScope) getResults() *ast.FieldList {
 	switch x := f.node.(type) {
 	case *ast.FuncLit:
 		return x.Type.Results
@@ -25,7 +25,7 @@ func (f *funcWrapper) getResults() *ast.FieldList {
 	panic("not func declaration")
 }
 
-func (f *funcWrapper) getName() string {
+func (f *functionScope) getName() string {
 	switch x := f.node.(type) {
 	case *ast.FuncLit:
 		return "anonimus"
@@ -36,12 +36,12 @@ func (f *funcWrapper) getName() string {
 	panic("not func declaration")
 }
 
-func (f *funcWrapper) getNextErrorName() string {
+func (f *functionScope) getNextErrorName() string {
 	f.errId++
 	return "err_" + strconv.Itoa(f.errId)
 }
 
-func (f *funcWrapper) hasErrorResults() bool {
+func (f *functionScope) hasErrorResults() bool {
 	r := f.getResults()
 
 	if r == nil {
