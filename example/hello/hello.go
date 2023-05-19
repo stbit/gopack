@@ -23,6 +23,10 @@ func withError(s string) (string, error) {
 	return s + "1", nil
 }
 
+func WithStringError(s string) (string, error) {
+	return s + "1", nil
+}
+
 func withInterface() error {
 	withError("sdfds")
 
@@ -52,7 +56,7 @@ func copy(src, dst string) (int64, error) {
 	return nBytes, nil
 }
 
-func showHello() (string, func(int) int, Profile, IBase, *Profile, int, error) {
+func showHello() (string, func(int) int, Profile, IBase, *Profile, int, utils.RTest, utils.SFunc, error) {
 	f := func() func() (int, error) {
 		return func() (int, error) {
 			s, _ := withError("hello11")
@@ -80,5 +84,5 @@ func showHello() (string, func(int) int, Profile, IBase, *Profile, int, error) {
 
 	fmt.Println(s, q, k, r, g1, g2)
 
-	return "", nil, Profile{}, nil, nil, 0, nil
+	return "", nil, Profile{}, nil, nil, 0, utils.RTest{}, nil, nil
 }

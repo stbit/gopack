@@ -1,24 +1,39 @@
 package manager
 
 import (
+	"go/ast"
+	"go/printer"
 	"io/fs"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 
-	"github.com/stbit/gopack/pkg/manager/parser"
+	"github.com/stbit/gopack/pkg/manager/pkginfo"
+	"github.com/stbit/gopack/pkg/plugins/syncerr"
+	"golang.org/x/mod/modfile"
 )
 
 type Manager struct {
-	rootPath string
+	rootPath   string
+	ModuleName string
 }
 
 func NewManager(rootPath string) (*Manager, error) {
-	return &Manager{rootPath: rootPath}, nil
+	modPath := rootPath + string(os.PathSeparator) + "go.mod"
+	buf, err := ioutil.ReadFile(modPath)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Manager{
+		rootPath:   rootPath,
+		ModuleName: modfile.ModulePath(buf),
+	}, nil
 }
 
-func (m *Manager) loadSourceFiles() ([]string, error) {
-	r := []string{}
+func (m *Manager) loadSourceFiles() ([]*pkginfo.FileInfo, error) {
+	r := []*pkginfo.FileInfo{}
 
 	err := filepath.Walk(m.rootPath, func(path string, info fs.FileInfo, err error) error {
 		if err != nil {
@@ -26,7 +41,13 @@ func (m *Manager) loadSourceFiles() ([]string, error) {
 		}
 
 		if !info.IsDir() && strings.HasSuffix(path, ".go") && !strings.Contains(path, "dist"+string(os.PathSeparator)) {
-			r = append(r, path)
+			f := pkginfo.NewFileInfo(m.ModuleName, m.rootPath, path)
+
+			if f.Error != nil {
+				println(f.Error)
+			} else {
+				r = append(r, f)
+			}
 		}
 
 		return nil
@@ -36,21 +57,60 @@ func (m *Manager) loadSourceFiles() ([]string, error) {
 }
 
 func (m *Manager) parse() error {
-	distPath := m.rootPath + string(os.PathSeparator) + "dist"
-	if err := os.RemoveAll(distPath); err != nil {
-		return err
-	}
-
 	l, err := m.loadSourceFiles()
 	if err != nil {
 		return err
 	}
 
-	parser.LoadPackages(l)
+	for _, f := range l {
+		syncerr.ParseFile(f)
+	}
+
+	for _, f := range l {
+		if f.Error == nil {
+			m.saveDistFile(f)
+		}
+	}
 
 	return nil
 }
 
 func (m *Manager) Run() error {
+	distPath := m.rootPath + string(os.PathSeparator) + "dist"
+	if err := os.RemoveAll(distPath); err != nil {
+		return err
+	}
+
 	return m.parse()
+}
+
+func (p *Manager) saveDistFile(f *pkginfo.FileInfo) error {
+	// replace imports to dist
+	for _, x := range f.File.Imports {
+		if strings.HasPrefix(x.Path.Value, "\""+p.ModuleName) {
+			x.Path.Value = strings.Replace(x.Path.Value, p.ModuleName, p.ModuleName+"/dist", 1)
+		}
+	}
+
+	ast.SortImports(f.Fset, f.File)
+
+	file := f.File
+	distPath := f.GetDistPath()
+
+	if err := os.MkdirAll(filepath.Dir(distPath), os.ModePerm); err != nil {
+		panic(err)
+	}
+
+	of, err := os.OpenFile(distPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o755)
+	if err != nil {
+		panic(err)
+	}
+
+	defer of.Close()
+
+	if err = printer.Fprint(of, f.Fset, file); err != nil {
+		return err
+	}
+
+	return nil
 }
