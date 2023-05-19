@@ -15,6 +15,17 @@ type replceCallExprStmt struct {
 	fnScope               *functionScope
 	lhs                   []ast.Expr
 	rhs                   []ast.Expr
+	zeroNameVars          []string
+}
+
+func newReplceCallExprStmt(f *functionScope, n ast.Node, lhs []ast.Expr, rhs []ast.Expr) *replceCallExprStmt {
+	return &replceCallExprStmt{
+		nodeAfterInsertReturn: n,
+		lhs:                   lhs,
+		rhs:                   rhs,
+		fnScope:               f,
+		zeroNameVars:          []string{},
+	}
 }
 
 func (s *replceCallExprStmt) replace(c *astutil.Cursor) {
@@ -60,6 +71,8 @@ func (s *replceCallExprStmt) replace(c *astutil.Cursor) {
 }
 
 func (r *replceCallExprStmt) getZeroValue(name string) string {
+	r.zeroNameVars = append(r.zeroNameVars, "test")
+
 	return "reflect.Zero(reflect.TypeOf((*" + name + ")(nil)).Elem()).Interface().(" + name + ")"
 }
 
