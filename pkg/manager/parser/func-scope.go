@@ -2,16 +2,42 @@ package parser
 
 import (
 	"go/ast"
+	"go/types"
 	"strconv"
+	"strings"
 )
 
 type functionScope struct {
-	node  ast.Node
-	errId int
+	node        ast.Node
+	errId       int
+	returnTypes []types.Type
 }
 
 func newFunctionScope(p *SourcePackage, n ast.Node) *functionScope {
-	return &functionScope{node: n}
+	fn := &functionScope{node: n, returnTypes: []types.Type{}}
+	r := fn.getResults()
+
+	if r != nil && r.List != nil {
+		for _, v := range r.List {
+			appened := false
+
+			switch x := v.Type.(type) {
+			case *ast.Ident:
+				if use, ok := p.pkg.TypesInfo.Uses[x]; ok {
+					if use.Type().Underlying().String() != "interface{}" {
+						appened = true
+						fn.returnTypes = append(fn.returnTypes, use.Type())
+					}
+				}
+			}
+
+			if !appened {
+				fn.returnTypes = append(fn.returnTypes, nil)
+			}
+		}
+	}
+
+	return fn
 }
 
 func (f *functionScope) getResults() *ast.FieldList {
@@ -42,17 +68,28 @@ func (f *functionScope) getNextErrorName() string {
 }
 
 func (f *functionScope) hasErrorResults() bool {
-	r := f.getResults()
+	r := f.returnTypes
 
-	if r == nil {
+	if len(r) == 0 {
 		return false
 	}
 
-	k := r.List[len(r.List)-1]
-	l, ok := (k.Type).(*ast.Ident)
-	if !ok {
+	k := r[len(r)-1]
+
+	if k == nil {
 		return false
 	}
 
-	return l.Name == "error"
+	return k.String() == "error"
+}
+
+func (f *functionScope) getTypeName(t types.Type) string {
+	n := t.String()
+	d := strings.LastIndex(n, ".")
+
+	if d != -1 {
+		return string(n[d+1:])
+	} else {
+		return n
+	}
 }

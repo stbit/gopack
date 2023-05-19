@@ -10,6 +10,8 @@ import (
 
 type Profile struct{}
 
+type IBase interface{}
+
 func (p *Profile) save() error {
 	s, _ := withError("dsf")
 	fmt.Println(s)
@@ -19,6 +21,12 @@ func (p *Profile) save() error {
 
 func withError(s string) (string, error) {
 	return s + "1", nil
+}
+
+func withInterface() error {
+	withError("sdfds")
+
+	return nil
 }
 
 func withOneError(s string) error {
@@ -44,7 +52,7 @@ func copy(src, dst string) (int64, error) {
 	return nBytes, nil
 }
 
-func showHello() (string, func(int) int, Profile, *Profile, int, error) {
+func showHello() (string, func(int) int, Profile, IBase, *Profile, int, error) {
 	f := func() func() (int, error) {
 		return func() (int, error) {
 			s, _ := withError("hello11")
@@ -58,18 +66,19 @@ func showHello() (string, func(int) int, Profile, *Profile, int, error) {
 	s, _ := withError("hello")
 	q, _ := withError("hello test")
 	err := withOneError("sdfs")
+	g1, g2 := err, 3
 	withOneError("simple with error")
 	utils.Sum(1, 2)
 
-	if err := withOneError("simple with error"); err != nil {
-		return "", nil, Profile{}, nil, 0, nil
-	}
+	// if err := withOneError("simple with error"); err != nil {
+	// 	return "", nil, Profile{}, nil, 0, nil
+	// }
 
 	_ = err
 	k, _ := f()()
 	r, _ := utils.Sum(1, 2)
 
-	fmt.Println(s, q, k, r)
+	fmt.Println(s, q, k, r, g1, g2)
 
-	return "", nil, Profile{}, nil, 0, nil
+	return "", nil, Profile{}, nil, nil, 0, nil
 }

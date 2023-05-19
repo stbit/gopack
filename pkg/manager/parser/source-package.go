@@ -14,7 +14,7 @@ type SourcePackage struct {
 	pkg *packages.Package
 }
 
-func (p *SourcePackage) Save() {
+func (p *SourcePackage) Save() error {
 	for i := range p.pkg.GoFiles {
 		file := p.pkg.Syntax[i]
 		parseAstFile(p, file)
@@ -25,6 +25,8 @@ func (p *SourcePackage) Save() {
 		distPath := strings.Replace(f, p.pkg.Module.Dir, p.pkg.Module.Dir+string(os.PathSeparator)+"dist", 1)
 		p.saveDistFile(distPath, file)
 	}
+
+	return nil
 }
 
 func (p *SourcePackage) saveDistFile(distPath string, file *ast.File) error {

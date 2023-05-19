@@ -9,10 +9,10 @@ import (
 )
 
 type replceCallExprStmt struct {
-	parentNode ast.Node
-	callExpr   *ast.CallExpr
-	fnScope    *functionScope
-	lhs        []ast.Expr
+	nodeAfterInsertReturn ast.Node
+	fnScope               *functionScope
+	lhs                   []ast.Expr
+	rhs                   []ast.Expr
 }
 
 func (s *replceCallExprStmt) replace(c *astutil.Cursor) {
@@ -24,25 +24,21 @@ func (s *replceCallExprStmt) replace(c *astutil.Cursor) {
 	c.Replace(&ast.AssignStmt{
 		Lhs: s.lhs,
 		Tok: token.DEFINE,
-		Rhs: []ast.Expr{
-			s.callExpr,
-		},
+		Rhs: s.rhs,
 	})
 
-	fsResults := s.fnScope.getResults().List
-	results := make([]ast.Expr, len(fsResults))
+	ts := s.fnScope.returnTypes
+	tslen := len(ts)
+	results := make([]ast.Expr, len(ts))
 
-	for i, v := range fsResults {
-		switch x := v.Type.(type) {
-		case *ast.StarExpr:
-			results[i] = &ast.Ident{Name: "nil"}
-		case *ast.Ident:
-			if x.Name == "error" {
+	for i, t := range ts {
+		if t != nil {
+			if tslen-1 == i && t.String() == "error" {
 				results[i] = &ast.Ident{Name: nameErr}
 			} else {
-				results[i] = &ast.Ident{Name: getDefaultValue(x.Name)}
+				results[i] = &ast.Ident{Name: getDefaultValue(s.fnScope.getTypeName(t))}
 			}
-		default:
+		} else {
 			results[i] = &ast.Ident{Name: "nil"}
 		}
 	}

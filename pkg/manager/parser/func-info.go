@@ -6,68 +6,114 @@ import (
 	"go/types"
 )
 
-func getFuncResults(p *SourcePackage, c *ast.CallExpr) *types.Tuple {
-	switch s := c.Fun.(type) {
-	case *ast.Ident:
-		return resolveFuncResults(p, s)
+func resolveExprTypes(p *SourcePackage, id *ast.Ident) ([]types.Type, bool, error) {
+	hasError := false
 
-	case *ast.SelectorExpr:
-		if s.Sel != nil {
-			return resolveFuncResults(p, s.Sel)
-		}
-	}
-
-	return nil
-}
-
-func resolveFuncResults(p *SourcePackage, id *ast.Ident) *types.Tuple {
 	if !p.pkg.TypesInfo.Types[id].IsType() {
 		if use, ok := p.pkg.TypesInfo.Uses[id]; ok {
-			if s, ok := use.Type().(*types.Signature); ok {
-				return s.Results()
+			switch x := use.Type().(type) {
+			case *types.Signature:
+				rf := x.Results()
+				r := make([]types.Type, rf.Len())
+				for i := 0; i < rf.Len(); i++ {
+					r[i] = rf.At(i).Type()
+
+					if !hasError {
+						hasError = r[i].String() == "error"
+					}
+				}
+
+				return r, hasError, nil
+			default:
+				return []types.Type{x}, x.String() == "error", nil
 			}
 		}
 	}
 
-	return nil
+	return nil, false, fmt.Errorf("cant find type")
 }
 
-func hasFuncResultsError(p *SourcePackage, c *ast.CallExpr) (*types.Tuple, bool) {
-	r := getFuncResults(p, c)
+func getAstExprTypes(p *SourcePackage, exprs []ast.Expr) ([][]types.Type, bool) {
+	var ind *ast.Ident
+	result := make([][]types.Type, len(exprs))
+	rhasError := false
 
-	if r.Len() > 0 {
-		l := r.At(r.Len() - 1)
+	for i, e := range exprs {
+		ind = nil
 
-		return r, l.Type().String() == "error"
+		switch x := e.(type) {
+		case *ast.SelectorExpr:
+			ind = x.Sel
+		case *ast.CallExpr:
+			switch c := x.Fun.(type) {
+			case *ast.SelectorExpr:
+				ind = c.Sel
+			case *ast.Ident:
+				ind = c
+			}
+		case *ast.Ident:
+			ind = x
+		default:
+			result[i] = []types.Type{&types.Basic{}}
+		}
+
+		if ind != nil {
+			r, hasError, err := resolveExprTypes(p, ind)
+			if err != nil {
+				panic(err)
+			}
+
+			if hasError {
+				rhasError = true
+			}
+
+			result[i] = r
+		}
 	}
 
-	return r, false
+	return result, rhasError
 }
 
-func normolizeAssignStmt(p *SourcePackage, exps []ast.Expr, fresults *types.Tuple, errName string) ([]ast.Expr, bool) {
-	r := make([]ast.Expr, fresults.Len())
+func normolizeAssignStmtTypes(p *SourcePackage, exps []ast.Expr, rhstypes [][]types.Type, errName string) ([]ast.Expr, bool) {
+	var ftypes []types.Type
+
+	if len(rhstypes) == 1 {
+		ftypes = rhstypes[0]
+	} else {
+		ftypes = make([]types.Type, len(rhstypes))
+
+		for i, c := range rhstypes {
+			if len(c) > 1 {
+				panic("multiple-value in single-value context")
+			}
+
+			ftypes[i] = c[0]
+		}
+	}
+
+	le := len(exps)
+	lr := len(ftypes)
+	r := make([]ast.Expr, lr)
 	needReplace := false
 
-	for i := 0; i < fresults.Len(); i++ {
-		n := "_"
+	if le > 0 && le != lr {
+		panic("left exprs count not equal right")
+	}
 
-		if len(exps)-1 >= i {
-			ind := exps[i].(*ast.Ident)
-
-			if ind == nil {
-				panic(fmt.Errorf("expression can only ast.Ident"))
+	for i := 0; i < lr; i++ {
+		if i < le {
+			r[i] = exps[i]
+		} else {
+			r[i] = &ast.Ident{
+				Name: "_",
 			}
-
-			n = ind.Name
 		}
 
-		if fresults.Len()-1 == i && n == "_" {
-			n = errName
-			needReplace = true
-		}
-
-		r[i] = &ast.Ident{
-			Name: n,
+		if lr-1 == i {
+			if n, ok := r[i].(*ast.Ident); ok && n.Name == "_" {
+				n.Name = errName
+				needReplace = true
+			}
 		}
 	}
 

@@ -1,7 +1,9 @@
 package parser
 
 import (
+	"log"
 	"path/filepath"
+	"time"
 
 	"golang.org/x/exp/slices"
 	"golang.org/x/tools/go/packages"
@@ -17,7 +19,8 @@ const loadMode = packages.NeedName |
 	packages.NeedTypesInfo |
 	packages.NeedModule
 
-func LoadPackages(l []string) {
+func LoadPackages(l []string) error {
+	start := time.Now()
 	pkgpaths := make([]string, 0)
 	pkgs := make([]*SourcePackage, 0)
 
@@ -41,7 +44,16 @@ func LoadPackages(l []string) {
 		})
 	}
 
+	elapsed := time.Since(start)
+	log.Printf("load packages %s", elapsed)
+
+	start = time.Now()
 	for _, p := range pkgs {
 		p.Save()
 	}
+
+	elapsed = time.Since(start)
+	log.Printf("save packages %s", elapsed)
+
+	return nil
 }
