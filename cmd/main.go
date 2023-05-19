@@ -1,36 +1,21 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"os"
-	"reflect"
 	"time"
 
 	"github.com/stbit/gopack/pkg/manager"
 )
 
-type (
-	Suka = int
-	Test struct{}
-
-	FunS func(int) int
-)
-
-var q Suka = reflect.Zero(reflect.TypeOf((*Suka)(nil)).Elem()).Interface().(Suka)
-
 func main() {
-	v := reflect.Zero(reflect.TypeOf((*FunS)(nil)).Elem()).Interface().(FunS)
-
-	fmt.Println(v, q)
-
 	path, err := os.Getwd()
 	if err != nil {
 		panic(err)
 	}
 
 	start := time.Now()
-	m, err := manager.NewManager(path) // + string(os.PathSeparator) + "example")
+	m, err := manager.NewManager(path)
 	if err != nil {
 		panic(err)
 	}
