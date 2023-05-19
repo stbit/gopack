@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"time"
@@ -9,6 +10,7 @@ import (
 )
 
 func main() {
+	fmt.Println("t1")
 	path, err := os.Getwd()
 	if err != nil {
 		panic(err)
