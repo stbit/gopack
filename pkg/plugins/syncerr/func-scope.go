@@ -3,8 +3,6 @@ package syncerr
 import (
 	"go/ast"
 	"strconv"
-
-	"github.com/stbit/gopack/pkg/manager/pkginfo"
 )
 
 type functionScope struct {
@@ -13,7 +11,7 @@ type functionScope struct {
 	results *ast.FieldList
 }
 
-func newFunctionScope(p *pkginfo.FileInfo, n ast.Node) *functionScope {
+func newFunctionScope(p *FileInfoExtended, n ast.Node) *functionScope {
 	fn := &functionScope{node: n}
 	fn.results = fn.getResults()
 

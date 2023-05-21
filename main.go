@@ -17,7 +17,7 @@ func main() {
 	}
 
 	start := time.Now()
-	m, err := manager.NewManager(path)
+	m, err := manager.New(path)
 	if err != nil {
 		panic(err)
 	}

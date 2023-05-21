@@ -16,12 +16,12 @@ type replceStmt interface {
 }
 
 func ParseFile(f *pkginfo.FileInfo) {
-	stmts := make(map[ast.Node]replceStmt)
+	fe := newFileInfoExtende(f)
 
 	ast.Inspect(f.File, func(n ast.Node) bool {
 		switch n.(type) {
 		case *ast.FuncDecl:
-			findReplacementExpr(f, stmts, n)
+			findReplacementExpr(fe, fe.stmts, n)
 			return false
 		}
 
@@ -41,7 +41,7 @@ func ParseFile(f *pkginfo.FileInfo) {
 			}
 		}()
 
-		if stmt, ok := stmts[cn]; ok {
+		if stmt, ok := fe.stmts[cn]; ok {
 			stmt.replace(c)
 			return false
 		}
@@ -53,24 +53,29 @@ func ParseFile(f *pkginfo.FileInfo) {
 		switch x := n.(type) {
 		case *ast.GenDecl:
 			if x.Tok == token.IMPORT {
-				for _, v := range stmts {
-					if ex, ok := v.(*replceCallExprStmt); ok && len(ex.zeroNameVars) > 0 {
-						// Add the new import
-						iSpec := &ast.ImportSpec{Path: &ast.BasicLit{Value: strconv.Quote("reflect")}}
-						x.Specs = append(x.Specs, iSpec)
-						return false
-					}
+				if len(fe.zeroVariables) > 0 {
+					iSpec := &ast.ImportSpec{Path: &ast.BasicLit{Value: strconv.Quote("reflect")}}
+					x.Specs = append(x.Specs, iSpec)
+
+					return false
 				}
 			}
-
-			return false
 		}
 
 		return true
 	})
+
+	specs := fe.getZeroVariablesDecls()
+
+	if len(specs) > 0 {
+		f.File.Decls = append(f.File.Decls, &ast.GenDecl{
+			Tok:   token.VAR,
+			Specs: specs,
+		})
+	}
 }
 
-func findReplacementExpr(f *pkginfo.FileInfo, stmts map[ast.Node]replceStmt, n ast.Node) {
+func findReplacementExpr(f *FileInfoExtended, stmts map[ast.Node]replceStmt, n ast.Node) {
 	fnScope := newFunctionScope(f, n)
 	ast.Inspect(n, func(cn ast.Node) bool {
 		defer func() {
@@ -95,7 +100,7 @@ func findReplacementExpr(f *pkginfo.FileInfo, stmts map[ast.Node]replceStmt, n a
 			switch i := x.Lhs[len(x.Lhs)-1].(type) {
 			case *ast.Ident:
 				if i.Name == "_" {
-					stmts[cn] = newReplceCallExprStmt(fnScope, cn, x.Lhs, x.Rhs)
+					stmts[cn] = newReplceCallExprStmt(f, fnScope, cn, x.Lhs, x.Rhs)
 				}
 			}
 		}

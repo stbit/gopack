@@ -4,27 +4,31 @@ import (
 	"fmt"
 	"go/ast"
 	"go/token"
+	"strconv"
 
 	"golang.org/x/tools/go/ast/astutil"
 )
 
-var zeroValue = []string{"int", "int8", "int16", "int32", "int64", "uint", "uint8", "uint16", "uint32", "uint64", "uintptr", "byte", "rune", "float32", "float64", "complex64"}
+var (
+	zeroValue      = []string{"int", "int8", "int16", "int32", "int64", "uint", "uint8", "uint16", "uint32", "uint64", "uintptr", "byte", "rune", "float32", "float64", "complex64"}
+	zeroVariableId = 0
+)
 
 type replceCallExprStmt struct {
 	nodeAfterInsertReturn ast.Node
+	fileInfo              *FileInfoExtended
 	fnScope               *functionScope
 	lhs                   []ast.Expr
 	rhs                   []ast.Expr
-	zeroNameVars          []string
 }
 
-func newReplceCallExprStmt(f *functionScope, n ast.Node, lhs []ast.Expr, rhs []ast.Expr) *replceCallExprStmt {
+func newReplceCallExprStmt(fe *FileInfoExtended, f *functionScope, n ast.Node, lhs []ast.Expr, rhs []ast.Expr) *replceCallExprStmt {
 	return &replceCallExprStmt{
 		nodeAfterInsertReturn: n,
 		lhs:                   lhs,
 		rhs:                   rhs,
+		fileInfo:              fe,
 		fnScope:               f,
-		zeroNameVars:          []string{},
 	}
 }
 
@@ -71,9 +75,25 @@ func (s *replceCallExprStmt) replace(c *astutil.Cursor) {
 }
 
 func (r *replceCallExprStmt) getZeroValue(name string) string {
-	r.zeroNameVars = append(r.zeroNameVars, "test")
+	var (
+		zv   ZeroValue
+		expr string = "reflect.Zero(reflect.TypeOf((*" + name + ")(nil)).Elem()).Interface().(" + name + ")"
+	)
 
-	return "reflect.Zero(reflect.TypeOf((*" + name + ")(nil)).Elem()).Interface().(" + name + ")"
+	for _, v := range r.fileInfo.zeroVariables {
+		if v.expr == expr {
+			zv = v
+			break
+		}
+	}
+
+	if zv.expr == "" {
+		zeroVariableId++
+		zv = ZeroValue{"zdv_" + strconv.Itoa(zeroVariableId), name, expr}
+		r.fileInfo.zeroVariables = append(r.fileInfo.zeroVariables, zv)
+	}
+
+	return zv.variable
 }
 
 func (r *replceCallExprStmt) getDefaultValue(f *ast.Field, errName string, isLast bool) string {

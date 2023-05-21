@@ -19,7 +19,7 @@ type Manager struct {
 	ModuleName string
 }
 
-func NewManager(rootPath string) (*Manager, error) {
+func New(rootPath string) (*Manager, error) {
 	modPath := rootPath + string(os.PathSeparator) + "go.mod"
 	buf, err := ioutil.ReadFile(modPath)
 	if err != nil {
@@ -80,6 +80,8 @@ func (m *Manager) Run() error {
 	if err := os.RemoveAll(distPath); err != nil {
 		return err
 	}
+
+	// fsnotify.New(m.rootPath)
 
 	return m.parse()
 }
