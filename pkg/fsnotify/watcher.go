@@ -1,16 +1,16 @@
 package fsnotify
 
 import (
-	"fmt"
+	"io/fs"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/radovskyb/watcher"
 )
-
-type Watcher struct{}
 
 func New(rootPath string) {
 	w := watcher.New()
@@ -25,30 +25,49 @@ func New(rootPath string) {
 		return nil
 	})
 
-	go func() {
-		for {
-			select {
-			case event := <-w.Event:
-				fmt.Println(event) // Print the event's info.
-			case err := <-w.Error:
-				log.Fatalln(err)
-			case <-w.Closed:
-				return
-			}
-		}
-	}()
+	w.Ignore(ignoreDist)
+	setupChangesFiles(w)
 
-	if err := w.AddRecursive(rootPath); err != nil {
+	if err := w.Add(rootPath); err != nil {
 		log.Fatalln(err)
 	}
 
-	fmt.Println("fa", rootPath)
+	err := filepath.Walk(rootPath, func(path string, info fs.FileInfo, err error) error {
+		filename := filepath.Base(path)
+		isHidden, err := isHiddenFile(path)
+		if err != nil {
+			return err
+		}
 
-	for path, f := range w.WatchedFiles() {
-		fmt.Printf("%s: %s\n", path, f.Name())
+		if info.IsDir() && (filename == "dist" || isHidden) {
+			return filepath.SkipDir
+		}
+
+		if info.IsDir() {
+			return w.Add(path)
+		}
+
+		return nil
+	})
+	if err != nil {
+		log.Fatalln(err)
 	}
 
 	if err := w.Start(time.Millisecond * 100); err != nil {
 		log.Fatalln(err)
 	}
+}
+
+func isHiddenFile(path string) (bool, error) {
+	pointer, err := syscall.UTF16PtrFromString(path)
+	if err != nil {
+		return false, err
+	}
+
+	attributes, err := syscall.GetFileAttributes(pointer)
+	if err != nil {
+		return false, err
+	}
+
+	return attributes&syscall.FILE_ATTRIBUTE_HIDDEN != 0, nil
 }
