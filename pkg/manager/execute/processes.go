@@ -1,7 +1,6 @@
 package execute
 
 import (
-	"context"
 	"log"
 	"os"
 	"os/exec"
@@ -9,25 +8,25 @@ import (
 )
 
 func StartProcesses(fl CommandsFlag) func() {
-	ctxs := make([]context.CancelFunc, fl.Len())
+	ctxs := make([]*exec.Cmd, fl.Len())
 
 	for i, v := range fl {
-		ctx, cancel := context.WithCancel(context.Background())
-
-		ctxs[i] = cancel
 		splits := strings.Split(v, " ")
-		cmd := exec.CommandContext(ctx, splits[0], splits[1:]...)
+		cmd := exec.Command(splits[0], splits[1:]...)
+		ctxs[i] = cmd
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 
-		if err := cmd.Run(); err != nil {
+		if err := cmd.Start(); err != nil {
 			log.Fatal(err)
 		}
 	}
 
 	return func() {
 		for _, v := range ctxs {
-			v()
+			if err := v.Process.Kill(); err != nil {
+				log.Fatal(err)
+			}
 		}
 	}
 }

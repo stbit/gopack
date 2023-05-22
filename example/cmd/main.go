@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/stbit/gopack/example/hello"
 )
@@ -11,6 +12,9 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	fmt.Println("sdfsdf244")
 
-	fmt.Println("hell23o", r)
+	time.Sleep(5 * time.Second)
+
+	fmt.Println("hell23o234", r)
 }
