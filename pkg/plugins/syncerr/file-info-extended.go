@@ -2,6 +2,7 @@ package syncerr
 
 import (
 	"go/ast"
+	"strings"
 
 	"github.com/stbit/gopack/pkg/manager/pkginfo"
 )
@@ -9,7 +10,6 @@ import (
 type ZeroValue struct {
 	variable string
 	typeVar  string
-	expr     string
 }
 
 type FileInfoExtended struct {
@@ -28,35 +28,19 @@ func newFileInfoExtende(f *pkginfo.FileInfo) *FileInfoExtended {
 func (f *FileInfoExtended) getZeroVariablesDecls() []ast.Spec {
 	var specs []ast.Spec = make([]ast.Spec, len(f.zeroVariables))
 	for i, v := range f.zeroVariables {
+		var t ast.Expr = ast.NewIdent(v.typeVar)
+
+		if strings.Contains(v.typeVar, ".") {
+			splits := strings.Split(v.typeVar, ".")
+			t = &ast.SelectorExpr{
+				Sel: ast.NewIdent(splits[1]),
+				X:   ast.NewIdent(splits[0]),
+			}
+		}
+
 		specs[i] = &ast.ValueSpec{
 			Names: []*ast.Ident{{Name: v.variable}},
-			Values: []ast.Expr{&ast.TypeAssertExpr{
-				Type: ast.NewIdent(v.typeVar),
-				X: &ast.CallExpr{Fun: &ast.SelectorExpr{
-					Sel: ast.NewIdent("Interface"),
-					X: &ast.CallExpr{
-						Args: []ast.Expr{&ast.CallExpr{Fun: &ast.SelectorExpr{
-							Sel: ast.NewIdent("Elem"),
-							X: &ast.CallExpr{
-								Args: []ast.Expr{
-									&ast.CallExpr{
-										Args: []ast.Expr{ast.NewIdent("nil")},
-										Fun:  &ast.ParenExpr{X: &ast.StarExpr{X: ast.NewIdent(v.typeVar)}},
-									},
-								},
-								Fun: &ast.SelectorExpr{
-									Sel: ast.NewIdent("TypeOf"),
-									X:   ast.NewIdent("reflect"),
-								},
-							},
-						}}},
-						Fun: &ast.SelectorExpr{
-							Sel: ast.NewIdent("Zero"),
-							X:   ast.NewIdent("reflect"),
-						},
-					},
-				}},
-			}},
+			Type:  t,
 		}
 	}
 

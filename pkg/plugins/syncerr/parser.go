@@ -5,7 +5,6 @@ import (
 	"go/printer"
 	"go/token"
 	"os"
-	"strconv"
 
 	"github.com/stbit/gopack/pkg/manager/pkginfo"
 	"golang.org/x/tools/go/ast/astutil"
@@ -48,22 +47,6 @@ func ParseFile(f *pkginfo.FileInfo) {
 
 		return true
 	}, nil)
-
-	ast.Inspect(f.File, func(n ast.Node) bool {
-		switch x := n.(type) {
-		case *ast.GenDecl:
-			if x.Tok == token.IMPORT {
-				if len(fe.zeroVariables) > 0 {
-					iSpec := &ast.ImportSpec{Path: &ast.BasicLit{Value: strconv.Quote("reflect")}}
-					x.Specs = append(x.Specs, iSpec)
-
-					return false
-				}
-			}
-		}
-
-		return true
-	})
 
 	specs := fe.getZeroVariablesDecls()
 

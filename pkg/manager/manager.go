@@ -1,6 +1,7 @@
 package manager
 
 import (
+	"fmt"
 	"go/ast"
 	"go/printer"
 	"io/fs"
@@ -13,15 +14,18 @@ import (
 	"time"
 
 	"github.com/stbit/gopack/pkg/fsnotify"
+	"github.com/stbit/gopack/pkg/manager/execute"
+	"github.com/stbit/gopack/pkg/manager/logger"
 	"github.com/stbit/gopack/pkg/manager/pkginfo"
 	"github.com/stbit/gopack/pkg/plugins/syncerr"
 	"golang.org/x/mod/modfile"
 )
 
 type Manager struct {
-	mu         sync.Mutex
-	rootPath   string
-	ModuleName string
+	mu            sync.Mutex
+	rootPath      string
+	ModuleName    string
+	stopProcesses func()
 }
 
 func New(rootPath string) (*Manager, error) {
@@ -70,7 +74,7 @@ func (m *Manager) clearDist() error {
 	return nil
 }
 
-func (m *Manager) parse() error {
+func (m *Manager) parse(commandsExec execute.CommandsFlag) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	start := time.Now()
@@ -94,23 +98,32 @@ func (m *Manager) parse() error {
 		}
 	}
 
-	log.Printf("Compiled successfully %s", time.Since(start))
+	log.Printf("compiled %s %s", logger.Success("successfully"), time.Since(start))
+
+	if m.stopProcesses != nil {
+		m.stopProcesses()
+	}
+
+	m.stopProcesses = execute.StartProcesses(commandsExec)
 
 	return nil
 }
 
-func (m *Manager) Run() error {
-	if err := m.parse(); err != nil {
+func (m *Manager) Run(commandsExec execute.CommandsFlag) error {
+	if err := m.parse(commandsExec); err != nil {
 		return err
 	}
 
+	return nil
+}
+
+func (m *Manager) Watch(commandsExec execute.CommandsFlag) {
+	fmt.Println("start watching...")
 	fsnotify.New(m.rootPath, func() {
-		if err := m.parse(); err != nil {
+		if err := m.parse(commandsExec); err != nil {
 			log.Fatal(err)
 		}
 	})
-
-	return nil
 }
 
 func (p *Manager) saveDistFile(f *pkginfo.FileInfo) error {

@@ -75,21 +75,18 @@ func (s *replceCallExprStmt) replace(c *astutil.Cursor) {
 }
 
 func (r *replceCallExprStmt) getZeroValue(name string) string {
-	var (
-		zv   ZeroValue
-		expr string = "reflect.Zero(reflect.TypeOf((*" + name + ")(nil)).Elem()).Interface().(" + name + ")"
-	)
+	var zv ZeroValue
 
 	for _, v := range r.fileInfo.zeroVariables {
-		if v.expr == expr {
+		if v.typeVar == name {
 			zv = v
 			break
 		}
 	}
 
-	if zv.expr == "" {
+	if zv.typeVar == "" {
 		zeroVariableId++
-		zv = ZeroValue{"zdv_" + strconv.Itoa(zeroVariableId), name, expr}
+		zv = ZeroValue{"zdv_" + strconv.Itoa(zeroVariableId), name}
 		r.fileInfo.zeroVariables = append(r.fileInfo.zeroVariables, zv)
 	}
 
