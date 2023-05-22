@@ -6,11 +6,12 @@ import (
 	"time"
 
 	"github.com/fsnotify/fsnotify"
+	"golang.org/x/exp/slices"
 )
 
 func setupChangesFiles(rootPath string, w *fsnotify.Watcher, onChange func()) {
 	go func() {
-		ignoreDist := rootPath + string(os.PathSeparator) + "dist"
+		ignoreFolders := []string{rootPath + string(os.PathSeparator) + "dist", rootPath + string(os.PathSeparator) + "tmp"}
 		interval := 100 * time.Millisecond
 		changed := false
 
@@ -21,7 +22,7 @@ func setupChangesFiles(rootPath string, w *fsnotify.Watcher, onChange func()) {
 					return
 				}
 
-				if event.Name != ignoreDist {
+				if !slices.Contains(ignoreFolders, event.Name) {
 					if event.Has(fsnotify.Create) {
 						if s, err := os.Stat(event.Name); err == nil && s.IsDir() {
 							w.Add(event.Name)

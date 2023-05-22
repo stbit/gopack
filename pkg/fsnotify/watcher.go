@@ -6,9 +6,11 @@ import (
 	"path/filepath"
 
 	"github.com/fsnotify/fsnotify"
+	"golang.org/x/exp/slices"
 )
 
 func New(rootPath string, onChange func()) {
+	ignoreFolders := []string{"dist", "tmp"}
 	w, err := fsnotify.NewWatcher()
 	if err != nil {
 		log.Fatal(err)
@@ -25,7 +27,7 @@ func New(rootPath string, onChange func()) {
 		filename := filepath.Base(path)
 		isHidden := isHiddenFile(path)
 
-		if info.IsDir() && (filename == "dist" || isHidden) {
+		if info.IsDir() && (slices.Contains(ignoreFolders, filename) || isHidden) {
 			return filepath.SkipDir
 		}
 
