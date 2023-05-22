@@ -5,16 +5,21 @@ import (
 	"go/printer"
 	"io/fs"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
+	"time"
 
+	"github.com/stbit/gopack/pkg/fsnotify"
 	"github.com/stbit/gopack/pkg/manager/pkginfo"
 	"github.com/stbit/gopack/pkg/plugins/syncerr"
 	"golang.org/x/mod/modfile"
 )
 
 type Manager struct {
+	mu         sync.Mutex
 	rootPath   string
 	ModuleName string
 }
@@ -56,7 +61,24 @@ func (m *Manager) loadSourceFiles() ([]*pkginfo.FileInfo, error) {
 	return r, err
 }
 
+func (m *Manager) clearDist() error {
+	distPath := m.rootPath + string(os.PathSeparator) + "dist"
+	if err := os.RemoveAll(distPath); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (m *Manager) parse() error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	start := time.Now()
+
+	if err := m.clearDist(); err != nil {
+		return nil
+	}
+
 	l, err := m.loadSourceFiles()
 	if err != nil {
 		return err
@@ -72,18 +94,23 @@ func (m *Manager) parse() error {
 		}
 	}
 
+	log.Printf("Compiled successfully %s", time.Since(start))
+
 	return nil
 }
 
 func (m *Manager) Run() error {
-	distPath := m.rootPath + string(os.PathSeparator) + "dist"
-	if err := os.RemoveAll(distPath); err != nil {
+	if err := m.parse(); err != nil {
 		return err
 	}
 
-	// fsnotify.New(m.rootPath)
+	fsnotify.New(m.rootPath, func() {
+		if err := m.parse(); err != nil {
+			log.Fatal(err)
+		}
+	})
 
-	return m.parse()
+	return nil
 }
 
 func (p *Manager) saveDistFile(f *pkginfo.FileInfo) error {

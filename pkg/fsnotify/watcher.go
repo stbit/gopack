@@ -3,36 +3,26 @@ package fsnotify
 import (
 	"io/fs"
 	"log"
-	"os"
 	"path/filepath"
-	"strings"
 	"syscall"
-	"time"
 
-	"github.com/radovskyb/watcher"
+	"github.com/fsnotify/fsnotify"
 )
 
-func New(rootPath string) {
-	w := watcher.New()
-	w.FilterOps(watcher.Create, watcher.Move, watcher.Rename, watcher.Write, watcher.Remove)
-	ignoreDist := rootPath + string(os.PathSeparator)
+func New(rootPath string, onChange func()) {
+	w, err := fsnotify.NewWatcher()
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer w.Close()
 
-	w.AddFilterHook(func(info os.FileInfo, fullPath string) error {
-		if strings.Contains(fullPath, ignoreDist) {
-			return watcher.ErrSkip
-		}
-
-		return nil
-	})
-
-	w.Ignore(ignoreDist)
-	setupChangesFiles(w)
+	setupChangesFiles(rootPath, w, onChange)
 
 	if err := w.Add(rootPath); err != nil {
 		log.Fatalln(err)
 	}
 
-	err := filepath.Walk(rootPath, func(path string, info fs.FileInfo, err error) error {
+	err = filepath.Walk(rootPath, func(path string, info fs.FileInfo, err error) error {
 		filename := filepath.Base(path)
 		isHidden, err := isHiddenFile(path)
 		if err != nil {
@@ -49,13 +39,12 @@ func New(rootPath string) {
 
 		return nil
 	})
+
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	if err := w.Start(time.Millisecond * 100); err != nil {
-		log.Fatalln(err)
-	}
+	<-make(chan struct{})
 }
 
 func isHiddenFile(path string) (bool, error) {
