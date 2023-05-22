@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"os"
 
 	"github.com/stbit/gopack/pkg/manager"
@@ -14,6 +15,8 @@ func main() {
 	watch := flag.Bool("w", false, "watch files changes")
 	flag.Var(&commandsExec, "e", "execute commands after compile")
 	flag.Parse()
+
+	fmt.Println("v.0.0.1")
 
 	path, err := os.Getwd()
 	if err != nil {
