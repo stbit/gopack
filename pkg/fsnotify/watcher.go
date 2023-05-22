@@ -4,7 +4,6 @@ import (
 	"io/fs"
 	"log"
 	"path/filepath"
-	"syscall"
 
 	"github.com/fsnotify/fsnotify"
 )
@@ -24,10 +23,7 @@ func New(rootPath string, onChange func()) {
 
 	err = filepath.Walk(rootPath, func(path string, info fs.FileInfo, err error) error {
 		filename := filepath.Base(path)
-		isHidden, err := isHiddenFile(path)
-		if err != nil {
-			return err
-		}
+		isHidden := isHiddenFile(path)
 
 		if info.IsDir() && (filename == "dist" || isHidden) {
 			return filepath.SkipDir
@@ -47,16 +43,12 @@ func New(rootPath string, onChange func()) {
 	<-make(chan struct{})
 }
 
-func isHiddenFile(path string) (bool, error) {
-	pointer, err := syscall.UTF16PtrFromString(path)
-	if err != nil {
-		return false, err
+const dotCharacter = 46
+
+func isHiddenFile(path string) bool {
+	if filepath.Base(path)[0] == dotCharacter {
+		return true
 	}
 
-	attributes, err := syscall.GetFileAttributes(pointer)
-	if err != nil {
-		return false, err
-	}
-
-	return attributes&syscall.FILE_ATTRIBUTE_HIDDEN != 0, nil
+	return false
 }
