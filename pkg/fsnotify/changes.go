@@ -23,10 +23,7 @@ func setupChangesFiles(rootPath string, w *fsnotify.Watcher, onChange func()) {
 
 				if event.Name != ignoreDist {
 					if event.Has(fsnotify.Create) {
-						s, err := os.Stat(event.Name)
-						if err != nil {
-							log.Fatal(err)
-						} else if s.IsDir() {
+						if s, err := os.Stat(event.Name); err == nil && s.IsDir() {
 							w.Add(event.Name)
 						}
 					}
