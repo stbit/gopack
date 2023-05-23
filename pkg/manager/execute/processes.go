@@ -4,37 +4,74 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"os/signal"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 )
 
-func StartProcesses(fl CommandsFlag) func() {
-	ctxs := make([]*exec.Cmd, fl.Len())
+type ProcessManager struct {
+	mu   sync.Mutex
+	ctxs []*exec.Cmd
+	fl   CommandsFlag
+}
 
-	for i, v := range fl {
-		cmd := startCmd(v)
-		ctxs[i] = cmd
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-
-		if err := cmd.Start(); err != nil {
-			log.Fatal(err)
-		}
+func New(fl CommandsFlag) *ProcessManager {
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+	m := &ProcessManager{
+		fl: fl,
 	}
 
-	return func() {
-		for _, c := range ctxs {
-			if os.PathSeparator == '\\' {
-				killWindow(c)
-			} else {
-				killOther(c)
+	go func() {
+		<-sigs
+		m.stop()
+		os.Exit(0)
+	}()
+
+	return m
+}
+
+func (m *ProcessManager) Start() {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	m.stop()
+
+	if m.fl.Len() > 0 {
+		m.ctxs = make([]*exec.Cmd, m.fl.Len())
+
+		for i, v := range m.fl {
+			cmd := m.startCmd(v)
+			m.ctxs[i] = cmd
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
+
+			if err := cmd.Start(); err != nil {
+				log.Fatal(err)
 			}
 		}
 	}
 }
 
-func startCmd(c string) *exec.Cmd {
+func (m *ProcessManager) stop() {
+	if m.ctxs == nil {
+		return
+	}
+
+	for _, c := range m.ctxs {
+		if os.PathSeparator == '\\' {
+			m.killWindow(c)
+		} else {
+			m.killOther(c)
+		}
+	}
+
+	m.ctxs = nil
+}
+
+func (m *ProcessManager) startCmd(c string) *exec.Cmd {
 	if os.PathSeparator == '\\' {
 		splits := strings.Split(c, " ")
 		return exec.Command(splits[0], splits[1:]...)
@@ -46,7 +83,7 @@ func startCmd(c string) *exec.Cmd {
 	}
 }
 
-func killWindow(cmd *exec.Cmd) error {
+func (m *ProcessManager) killWindow(cmd *exec.Cmd) error {
 	kill := exec.Command("TASKKILL", "/T", "/F", "/PID", strconv.Itoa(cmd.Process.Pid))
 	kill.Stderr = os.Stderr
 	kill.Stdout = os.Stdout
@@ -54,7 +91,7 @@ func killWindow(cmd *exec.Cmd) error {
 	return kill.Run()
 }
 
-func killOther(cmd *exec.Cmd) error {
+func (m *ProcessManager) killOther(cmd *exec.Cmd) error {
 	err := syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL)
 	_, _ = cmd.Process.Wait()
 	return err

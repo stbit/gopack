@@ -23,16 +23,16 @@ func main() {
 		panic(err)
 	}
 
-	m, err := manager.New(path)
+	m, err := manager.New(path, commandsExec)
 	if err != nil {
 		panic(err)
 	}
 
-	if err = m.Run(commandsExec); err != nil {
+	if err = m.Run(); err != nil {
 		panic(err)
 	}
 
 	if *watch {
-		m.Watch(commandsExec)
+		m.Watch()
 	}
 }

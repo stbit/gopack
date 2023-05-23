@@ -22,13 +22,13 @@ import (
 )
 
 type Manager struct {
-	mu            sync.Mutex
-	rootPath      string
-	ModuleName    string
-	stopProcesses func()
+	mu             sync.Mutex
+	rootPath       string
+	ModuleName     string
+	processManager *execute.ProcessManager
 }
 
-func New(rootPath string) (*Manager, error) {
+func New(rootPath string, fl execute.CommandsFlag) (*Manager, error) {
 	modPath := rootPath + string(os.PathSeparator) + "go.mod"
 	buf, err := ioutil.ReadFile(modPath)
 	if err != nil {
@@ -36,8 +36,9 @@ func New(rootPath string) (*Manager, error) {
 	}
 
 	return &Manager{
-		rootPath:   rootPath,
-		ModuleName: modfile.ModulePath(buf),
+		rootPath:       rootPath,
+		ModuleName:     modfile.ModulePath(buf),
+		processManager: execute.New(fl),
 	}, nil
 }
 
@@ -74,7 +75,7 @@ func (m *Manager) clearDist() error {
 	return nil
 }
 
-func (m *Manager) parse(commandsExec execute.CommandsFlag) error {
+func (m *Manager) parse() error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	start := time.Now()
@@ -100,27 +101,23 @@ func (m *Manager) parse(commandsExec execute.CommandsFlag) error {
 
 	log.Printf("compiled %s %s", logger.Success("successfully"), time.Since(start))
 
-	if m.stopProcesses != nil {
-		m.stopProcesses()
-	}
-
-	m.stopProcesses = execute.StartProcesses(commandsExec)
+	m.processManager.Start()
 
 	return nil
 }
 
-func (m *Manager) Run(commandsExec execute.CommandsFlag) error {
-	if err := m.parse(commandsExec); err != nil {
+func (m *Manager) Run() error {
+	if err := m.parse(); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (m *Manager) Watch(commandsExec execute.CommandsFlag) {
+func (m *Manager) Watch() {
 	fmt.Println("start watching...")
 	fsnotify.New(m.rootPath, func() {
-		if err := m.parse(commandsExec); err != nil {
+		if err := m.parse(); err != nil {
 			log.Fatal(err)
 		}
 	})
