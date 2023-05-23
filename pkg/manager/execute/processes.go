@@ -6,14 +6,14 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
+	"syscall"
 )
 
 func StartProcesses(fl CommandsFlag) func() {
 	ctxs := make([]*exec.Cmd, fl.Len())
 
 	for i, v := range fl {
-		splits := strings.Split(v, " ")
-		cmd := exec.Command(splits[0], splits[1:]...)
+		cmd := startCmd(v)
 		ctxs[i] = cmd
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
@@ -34,6 +34,18 @@ func StartProcesses(fl CommandsFlag) func() {
 	}
 }
 
+func startCmd(c string) *exec.Cmd {
+	if os.PathSeparator == '\\' {
+		splits := strings.Split(c, " ")
+		return exec.Command(splits[0], splits[1:]...)
+	} else {
+		cmd := exec.Command("sh", "-c", c)
+		cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+
+		return cmd
+	}
+}
+
 func killWindow(cmd *exec.Cmd) error {
 	kill := exec.Command("TASKKILL", "/T", "/F", "/PID", strconv.Itoa(cmd.Process.Pid))
 	kill.Stderr = os.Stderr
@@ -43,9 +55,7 @@ func killWindow(cmd *exec.Cmd) error {
 }
 
 func killOther(cmd *exec.Cmd) error {
-	kill := exec.Command("kill", "-15", strconv.Itoa(cmd.Process.Pid))
-	kill.Stderr = os.Stderr
-	kill.Stdout = os.Stdout
-
-	return kill.Run()
+	err := syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL)
+	_, _ = cmd.Process.Wait()
+	return err
 }
