@@ -35,6 +35,11 @@ func withInterface() error {
 
 func withOneError(s string) error {
 	d, _ := os.OpenFile("", os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o755)
+	// SetMaxIdleConns устанавливает максимальное количество соединений в пуле бездействия.
+	// sqlDB.SetMaxIdleConns(50)
+
+	// // SetMaxOpenConns устанавливает максимальное количество открытых соединений с БД.
+	// sqlDB.SetMaxOpenConns(100)
 	defer d.Close()
 	fmt.Println(s)
 	return nil

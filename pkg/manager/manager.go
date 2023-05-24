@@ -125,6 +125,7 @@ func (p *Manager) saveDistFile(f *pkginfo.FileInfo) error {
 	}
 
 	ast.SortImports(f.Fset, f.File)
+	f.File.Comments = []*ast.CommentGroup{}
 
 	file := f.File
 	distPath := f.GetDistPath()
