@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"go/ast"
 	"go/printer"
-	"io/fs"
 	"io/ioutil"
 	"log"
 	"os"
@@ -15,20 +14,26 @@ import (
 
 	"github.com/stbit/gopack/pkg/fsnotify"
 	"github.com/stbit/gopack/pkg/manager/execute"
+	"github.com/stbit/gopack/pkg/manager/hooks"
 	"github.com/stbit/gopack/pkg/manager/logger"
 	"github.com/stbit/gopack/pkg/manager/pkginfo"
-	"github.com/stbit/gopack/pkg/plugins/syncerr"
+	"github.com/stbit/gopack/pkg/plugins"
 	"golang.org/x/mod/modfile"
 )
 
 type Manager struct {
 	mu             sync.Mutex
+	watch          bool
 	rootPath       string
+	distPath       string
 	ModuleName     string
 	processManager *execute.ProcessManager
+	hooks          *hooks.ManagerHooks
+	plugins        []plugins.PluginRegister
+	sourceFiles    []*pkginfo.FileInfo
 }
 
-func New(rootPath string, fl execute.CommandsFlag) (*Manager, error) {
+func New(rootPath string, watch bool, fl execute.CommandsFlag) (*Manager, error) {
 	modPath := rootPath + string(os.PathSeparator) + "go.mod"
 	buf, err := ioutil.ReadFile(modPath)
 	if err != nil {
@@ -37,38 +42,22 @@ func New(rootPath string, fl execute.CommandsFlag) (*Manager, error) {
 
 	return &Manager{
 		rootPath:       rootPath,
+		distPath:       rootPath + string(os.PathSeparator) + "dist",
+		watch:          watch,
 		ModuleName:     modfile.ModulePath(buf),
 		processManager: execute.New(fl),
+		hooks:          hooks.NewManager(),
+		plugins:        make([]plugins.PluginRegister, 0),
+		sourceFiles:    make([]*pkginfo.FileInfo, 0),
 	}, nil
 }
 
-func (m *Manager) loadSourceFiles() ([]*pkginfo.FileInfo, error) {
-	r := []*pkginfo.FileInfo{}
-
-	err := filepath.Walk(m.rootPath, func(path string, info fs.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-
-		if !info.IsDir() && strings.HasSuffix(path, ".go") && !strings.Contains(path, "dist"+string(os.PathSeparator)) {
-			f := pkginfo.NewFileInfo(m.ModuleName, m.rootPath, path)
-
-			if f.Error != nil {
-				println(f.Error)
-			} else {
-				r = append(r, f)
-			}
-		}
-
-		return nil
-	})
-
-	return r, err
+func (m *Manager) RegisterPlugin(p plugins.PluginRegister) {
+	m.plugins = append(m.plugins, p)
 }
 
 func (m *Manager) clearDist() error {
-	distPath := m.rootPath + string(os.PathSeparator) + "dist"
-	if err := os.RemoveAll(distPath); err != nil {
+	if err := os.RemoveAll(m.distPath); err != nil {
 		return err
 	}
 
@@ -84,16 +73,15 @@ func (m *Manager) parse() error {
 		return nil
 	}
 
-	l, err := m.loadSourceFiles()
-	if err != nil {
+	if err := m.loadSourceFiles(); err != nil {
 		return err
 	}
 
-	for _, f := range l {
-		syncerr.ParseFile(f)
+	for _, f := range m.sourceFiles {
+		m.hooks.EmitParseHook(hooks.HOOK_PARSE_FILE, f)
 	}
 
-	for _, f := range l {
+	for _, f := range m.sourceFiles {
 		if f.Error == nil {
 			m.saveDistFile(f)
 		}
@@ -107,6 +95,11 @@ func (m *Manager) parse() error {
 }
 
 func (m *Manager) Run() error {
+	mc := plugins.NewManagerContext(m.hooks)
+	for _, v := range m.plugins {
+		v.Register(mc)
+	}
+
 	if err := m.parse(); err != nil {
 		return err
 	}
@@ -115,7 +108,7 @@ func (m *Manager) Run() error {
 }
 
 func (m *Manager) Watch() {
-	fmt.Println("start watching...")
+	fmt.Println(logger.Magenta("start watching..."))
 	fsnotify.New(m.rootPath, func() {
 		if err := m.parse(); err != nil {
 			log.Fatal(err)

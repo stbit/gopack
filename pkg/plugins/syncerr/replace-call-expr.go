@@ -9,10 +9,7 @@ import (
 	"golang.org/x/tools/go/ast/astutil"
 )
 
-var (
-	zeroValue      = []string{"int", "int8", "int16", "int32", "int64", "uint", "uint8", "uint16", "uint32", "uint64", "uintptr", "byte", "rune", "float32", "float64", "complex64"}
-	zeroVariableId = 0
-)
+var zeroVariableId = 0
 
 type replceCallExprStmt struct {
 	nodeAfterInsertReturn ast.Node
@@ -102,15 +99,7 @@ func (r *replceCallExprStmt) getDefaultValue(f *ast.Field, errName string, isLas
 		if isLast && x.Name == "error" {
 			return errName
 		} else {
-			for _, v := range zeroValue {
-				if v == x.Name {
-					return "0"
-				}
-			}
-
 			switch x.Name {
-			case "string":
-				return "\"\""
 			case "bool":
 				return "false"
 			}

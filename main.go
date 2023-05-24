@@ -7,6 +7,7 @@ import (
 
 	"github.com/stbit/gopack/pkg/manager"
 	"github.com/stbit/gopack/pkg/manager/execute"
+	"github.com/stbit/gopack/pkg/plugins/syncerr"
 )
 
 func main() {
@@ -23,10 +24,12 @@ func main() {
 		panic(err)
 	}
 
-	m, err := manager.New(path, commandsExec)
+	m, err := manager.New(path, *watch, commandsExec)
 	if err != nil {
 		panic(err)
 	}
+
+	m.RegisterPlugin(&syncerr.SyncErrPlugin{})
 
 	if err = m.Run(); err != nil {
 		panic(err)

@@ -6,12 +6,27 @@ import (
 	"go/token"
 	"os"
 
+	"github.com/stbit/gopack/pkg/manager/hooks"
 	"github.com/stbit/gopack/pkg/manager/pkginfo"
+	"github.com/stbit/gopack/pkg/plugins"
 	"golang.org/x/tools/go/ast/astutil"
 )
 
+var pluginName = "syncerr"
+
 type replceStmt interface {
 	replace(c *astutil.Cursor)
+}
+
+type SyncErrPlugin struct{}
+
+func (p *SyncErrPlugin) Register(m *plugins.ManagerContext) error {
+	m.AddHookParseFile(pluginName, hooks.HOOK_PARSE_FILE, func(f *pkginfo.FileInfo) error {
+		ParseFile(f)
+		return nil
+	})
+
+	return nil
 }
 
 func ParseFile(f *pkginfo.FileInfo) {
