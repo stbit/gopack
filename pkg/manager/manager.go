@@ -67,10 +67,6 @@ func (m *Manager) parse() error {
 	defer m.mu.Unlock()
 	start := time.Now()
 
-	if err := m.clearDist(); err != nil {
-		return nil
-	}
-
 	if err := m.loadSourceFiles(); err != nil {
 		return err
 	}
@@ -95,6 +91,10 @@ func (m *Manager) parse() error {
 }
 
 func (m *Manager) Run() error {
+	if err := m.clearDist(); err != nil {
+		logger.Fatal(err)
+	}
+
 	mc := plugins.NewManagerContext(m.hooks)
 	for _, v := range m.plugins {
 		v.Register(mc)
