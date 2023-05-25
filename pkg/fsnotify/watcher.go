@@ -2,25 +2,25 @@ package fsnotify
 
 import (
 	"io/fs"
-	"log"
 	"path/filepath"
 
 	"github.com/fsnotify/fsnotify"
+	"github.com/stbit/gopack/pkg/manager/logger"
 	"golang.org/x/exp/slices"
 )
 
-func New(rootPath string, onChange func()) {
+func New(rootPath string, onChange func(d []string)) {
 	ignoreFolders := []string{"dist", "tmp"}
 	w, err := fsnotify.NewWatcher()
 	if err != nil {
-		log.Fatal(err)
+		logger.Fatal(err)
 	}
 	defer w.Close()
 
 	setupChangesFiles(rootPath, w, onChange)
 
 	if err := w.Add(rootPath); err != nil {
-		log.Fatalln(err)
+		logger.Fatal(err)
 	}
 
 	err = filepath.Walk(rootPath, func(path string, info fs.FileInfo, err error) error {
@@ -39,7 +39,7 @@ func New(rootPath string, onChange func()) {
 	})
 
 	if err != nil {
-		log.Fatalln(err)
+		logger.Fatal(err)
 	}
 
 	<-make(chan struct{})

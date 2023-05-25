@@ -1,8 +1,7 @@
 package hooks
 
 import (
-	"log"
-
+	"github.com/stbit/gopack/pkg/manager/logger"
 	"github.com/stbit/gopack/pkg/manager/pkginfo"
 )
 
@@ -20,7 +19,7 @@ var (
 
 type Hooks interface {
 	AddHook(pluginName string, name HookName, callback func() error)
-	AddHookParseFile(pluginName string, name ParseHookName, callback func(f *pkginfo.FileInfo) error)
+	AddHookParseFile(pluginName string, name ParseHookName, callback func(f *pkginfo.FileContext) error)
 }
 
 type ManagerHooks struct {
@@ -37,7 +36,7 @@ type hook struct {
 type parseHook struct {
 	PluginName string
 	Name       ParseHookName
-	Callback   func(*pkginfo.FileInfo) error
+	Callback   func(*pkginfo.FileContext) error
 }
 
 func NewManager() *ManagerHooks {
@@ -51,7 +50,7 @@ func (m *ManagerHooks) AddHook(pluginName string, name HookName, callback func()
 	m.hooks = append(m.hooks, hook{PluginName: pluginName, Name: name, Callback: callback})
 }
 
-func (m *ManagerHooks) AddHookParseFile(pluginName string, name ParseHookName, callback func(*pkginfo.FileInfo) error) {
+func (m *ManagerHooks) AddHookParseFile(pluginName string, name ParseHookName, callback func(*pkginfo.FileContext) error) {
 	m.parseHooks = append(m.parseHooks, parseHook{PluginName: pluginName, Name: name, Callback: callback})
 }
 
@@ -59,7 +58,7 @@ func (m *ManagerHooks) EmitHook(name HookName) error {
 	for _, v := range m.hooks {
 		if v.Name == name {
 			if err := v.Callback(); err != nil {
-				log.Fatal(err)
+				logger.Error(err)
 			}
 		}
 	}
@@ -67,11 +66,11 @@ func (m *ManagerHooks) EmitHook(name HookName) error {
 	return nil
 }
 
-func (m *ManagerHooks) EmitParseHook(name ParseHookName, f *pkginfo.FileInfo) error {
+func (m *ManagerHooks) EmitParseHook(name ParseHookName, f *pkginfo.FileContext) error {
 	for _, v := range m.parseHooks {
 		if v.Name == name {
 			if err := v.Callback(f); err != nil {
-				log.Fatal(err)
+				logger.Error(err)
 			}
 		}
 	}

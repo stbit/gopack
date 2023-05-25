@@ -17,7 +17,7 @@ func main() {
 	flag.Var(&commandsExec, "e", "execute commands after compile")
 	flag.Parse()
 
-	fmt.Println("v.0.0.1")
+	fmt.Println("v.0.0.1-beta")
 
 	path, err := os.Getwd()
 	if err != nil {

@@ -1,18 +1,12 @@
 package manager
 
 import (
-	"fmt"
-	"go/ast"
-	"go/printer"
 	"io/ioutil"
 	"log"
 	"os"
-	"path/filepath"
-	"strings"
 	"sync"
 	"time"
 
-	"github.com/stbit/gopack/pkg/fsnotify"
 	"github.com/stbit/gopack/pkg/manager/execute"
 	"github.com/stbit/gopack/pkg/manager/hooks"
 	"github.com/stbit/gopack/pkg/manager/logger"
@@ -61,6 +55,10 @@ func (m *Manager) clearDist() error {
 		return err
 	}
 
+	if err := os.Mkdir(m.distPath, os.ModePerm); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -78,12 +76,14 @@ func (m *Manager) parse() error {
 	}
 
 	for _, f := range m.sourceFiles {
-		m.hooks.EmitParseHook(hooks.HOOK_PARSE_FILE, f)
+		if !f.IsSaved() {
+			m.hooks.EmitParseHook(hooks.HOOK_PARSE_FILE, f.FileContext)
+		}
 	}
 
 	for _, f := range m.sourceFiles {
-		if f.Error == nil {
-			m.saveDistFile(f)
+		if f.Error == nil && !f.IsSaved() {
+			f.Save()
 		}
 	}
 
@@ -101,48 +101,7 @@ func (m *Manager) Run() error {
 	}
 
 	if err := m.parse(); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (m *Manager) Watch() {
-	fmt.Println(logger.Magenta("start watching..."))
-	fsnotify.New(m.rootPath, func() {
-		if err := m.parse(); err != nil {
-			log.Fatal(err)
-		}
-	})
-}
-
-func (p *Manager) saveDistFile(f *pkginfo.FileInfo) error {
-	// replace imports to dist
-	for _, x := range f.File.Imports {
-		if strings.HasPrefix(x.Path.Value, "\""+p.ModuleName) {
-			x.Path.Value = strings.Replace(x.Path.Value, p.ModuleName, p.ModuleName+"/dist", 1)
-		}
-	}
-
-	ast.SortImports(f.Fset, f.File)
-	f.File.Comments = []*ast.CommentGroup{}
-
-	file := f.File
-	distPath := f.GetDistPath()
-
-	if err := os.MkdirAll(filepath.Dir(distPath), os.ModePerm); err != nil {
-		panic(err)
-	}
-
-	of, err := os.OpenFile(distPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o755)
-	if err != nil {
-		panic(err)
-	}
-
-	defer of.Close()
-
-	if err = printer.Fprint(of, f.Fset, file); err != nil {
-		return err
+		logger.Error(err)
 	}
 
 	return nil

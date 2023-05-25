@@ -13,15 +13,15 @@ type ZeroValue struct {
 }
 
 type FileInfoExtended struct {
-	*pkginfo.FileInfo
+	*pkginfo.FileContext
 	stmts         map[ast.Node]replceStmt
 	zeroVariables []ZeroValue
 }
 
-func newFileInfoExtende(f *pkginfo.FileInfo) *FileInfoExtended {
+func newFileInfoExtende(f *pkginfo.FileContext) *FileInfoExtended {
 	return &FileInfoExtended{
-		FileInfo: f,
-		stmts:    make(map[ast.Node]replceStmt),
+		FileContext: f,
+		stmts:       make(map[ast.Node]replceStmt),
 	}
 }
 

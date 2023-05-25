@@ -1,7 +1,6 @@
 package execute
 
 import (
-	"log"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -9,6 +8,8 @@ import (
 	"strings"
 	"sync"
 	"syscall"
+
+	"github.com/stbit/gopack/pkg/manager/logger"
 )
 
 type ProcessManager struct {
@@ -49,7 +50,7 @@ func (m *ProcessManager) Start() {
 			cmd.Stderr = os.Stderr
 
 			if err := cmd.Start(); err != nil {
-				log.Fatal(err)
+				logger.Error(err)
 			}
 		}
 	}

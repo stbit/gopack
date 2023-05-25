@@ -21,7 +21,7 @@ type replceStmt interface {
 type SyncErrPlugin struct{}
 
 func (p *SyncErrPlugin) Register(m *plugins.ManagerContext) error {
-	m.AddHookParseFile(pluginName, hooks.HOOK_PARSE_FILE, func(f *pkginfo.FileInfo) error {
+	m.AddHookParseFile(pluginName, hooks.HOOK_PARSE_FILE, func(f *pkginfo.FileContext) error {
 		ParseFile(f)
 		return nil
 	})
@@ -29,7 +29,7 @@ func (p *SyncErrPlugin) Register(m *plugins.ManagerContext) error {
 	return nil
 }
 
-func ParseFile(f *pkginfo.FileInfo) {
+func ParseFile(f *pkginfo.FileContext) {
 	fe := newFileInfoExtende(f)
 
 	ast.Inspect(f.File, func(n ast.Node) bool {
