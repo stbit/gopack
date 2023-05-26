@@ -13,13 +13,13 @@ var zeroVariableId = 0
 
 type replceCallExprStmt struct {
 	nodeAfterInsertReturn ast.Node
-	fileInfo              *FileInfoExtended
+	fileInfo              *fileInfoExtended
 	fnScope               *functionScope
 	lhs                   []ast.Expr
 	rhs                   []ast.Expr
 }
 
-func newReplceCallExprStmt(fe *FileInfoExtended, f *functionScope, n ast.Node, lhs []ast.Expr, rhs []ast.Expr) *replceCallExprStmt {
+func newReplceCallExprStmt(fe *fileInfoExtended, f *functionScope, n ast.Node, lhs []ast.Expr, rhs []ast.Expr) *replceCallExprStmt {
 	return &replceCallExprStmt{
 		nodeAfterInsertReturn: n,
 		lhs:                   lhs,
@@ -72,7 +72,7 @@ func (s *replceCallExprStmt) replace(c *astutil.Cursor) {
 }
 
 func (r *replceCallExprStmt) getZeroValue(name string) string {
-	var zv ZeroValue
+	var zv zeroValue
 
 	for _, v := range r.fileInfo.zeroVariables {
 		if v.typeVar == name {
@@ -83,7 +83,7 @@ func (r *replceCallExprStmt) getZeroValue(name string) string {
 
 	if zv.typeVar == "" {
 		zeroVariableId++
-		zv = ZeroValue{"zdv_" + strconv.Itoa(zeroVariableId), name}
+		zv = zeroValue{"zdv_" + strconv.Itoa(zeroVariableId), name}
 		r.fileInfo.zeroVariables = append(r.fileInfo.zeroVariables, zv)
 	}
 

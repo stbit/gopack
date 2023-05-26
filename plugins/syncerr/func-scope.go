@@ -11,7 +11,7 @@ type functionScope struct {
 	results *ast.FieldList
 }
 
-func newFunctionScope(p *FileInfoExtended, n ast.Node) *functionScope {
+func newFunctionScope(p *fileInfoExtended, n ast.Node) *functionScope {
 	fn := &functionScope{node: n}
 	fn.results = fn.getResults()
 

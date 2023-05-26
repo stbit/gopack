@@ -7,25 +7,25 @@ import (
 	"github.com/stbit/gopack/pkg/manager/pkginfo"
 )
 
-type ZeroValue struct {
+type zeroValue struct {
 	variable string
 	typeVar  string
 }
 
-type FileInfoExtended struct {
+type fileInfoExtended struct {
 	*pkginfo.FileContext
 	stmts         map[ast.Node]replceStmt
-	zeroVariables []ZeroValue
+	zeroVariables []zeroValue
 }
 
-func newFileInfoExtende(f *pkginfo.FileContext) *FileInfoExtended {
-	return &FileInfoExtended{
+func newFileInfoExtende(f *pkginfo.FileContext) *fileInfoExtended {
+	return &fileInfoExtended{
 		FileContext: f,
 		stmts:       make(map[ast.Node]replceStmt),
 	}
 }
 
-func (f *FileInfoExtended) getZeroVariablesDecls() []ast.Spec {
+func (f *fileInfoExtended) getZeroVariablesDecls() []ast.Spec {
 	var specs []ast.Spec = make([]ast.Spec, len(f.zeroVariables))
 	for i, v := range f.zeroVariables {
 		var t ast.Expr = ast.NewIdent(v.typeVar)

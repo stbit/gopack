@@ -18,18 +18,18 @@ type replceStmt interface {
 	replace(c *astutil.Cursor)
 }
 
-type SyncErrPlugin struct{}
+func New() plugins.PluginRegister {
+	return func(m *plugins.ManagerContext) error {
+		m.AddHookParseFile(pluginName, hooks.HOOK_PARSE_FILE, func(f *pkginfo.FileContext) error {
+			parseFile(f)
+			return nil
+		})
 
-func (p *SyncErrPlugin) Register(m *plugins.ManagerContext) error {
-	m.AddHookParseFile(pluginName, hooks.HOOK_PARSE_FILE, func(f *pkginfo.FileContext) error {
-		ParseFile(f)
 		return nil
-	})
-
-	return nil
+	}
 }
 
-func ParseFile(f *pkginfo.FileContext) {
+func parseFile(f *pkginfo.FileContext) {
 	fe := newFileInfoExtende(f)
 
 	ast.Inspect(f.File, func(n ast.Node) bool {
@@ -73,7 +73,7 @@ func ParseFile(f *pkginfo.FileContext) {
 	}
 }
 
-func findReplacementExpr(f *FileInfoExtended, stmts map[ast.Node]replceStmt, n ast.Node) {
+func findReplacementExpr(f *fileInfoExtended, stmts map[ast.Node]replceStmt, n ast.Node) {
 	fnScope := newFunctionScope(f, n)
 	ast.Inspect(n, func(cn ast.Node) bool {
 		defer func() {

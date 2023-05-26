@@ -12,6 +12,4 @@ func NewManagerContext(h hooks.Hooks) *ManagerContext {
 	return &ManagerContext{Hooks: h}
 }
 
-type PluginRegister interface {
-	Register(*ManagerContext) error
-}
+type PluginRegister = func(*ManagerContext) error

@@ -97,7 +97,7 @@ func (m *Manager) Run() error {
 
 	mc := plugins.NewManagerContext(m.hooks)
 	for _, v := range m.plugins {
-		v.Register(mc)
+		v(mc)
 	}
 
 	if err := m.parse(); err != nil {

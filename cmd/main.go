@@ -25,7 +25,7 @@ func main() {
 			{Name: "main", Exec: "go run ./dist/example/cmd/main.go"},
 		},
 		Plugins: []plugins.PluginRegister{
-			&syncerr.SyncErrPlugin{},
+			syncerr.New(),
 		},
 	})
 
