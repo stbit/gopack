@@ -5,8 +5,8 @@ import (
 	"os"
 
 	"github.com/stbit/gopack"
-	"github.com/stbit/gopack/pkg/plugins"
-	"github.com/stbit/gopack/pkg/plugins/syncerr"
+	"github.com/stbit/gopack/plugins"
+	"github.com/stbit/gopack/plugins/syncerr"
 )
 
 func main() {

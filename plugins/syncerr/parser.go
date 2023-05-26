@@ -8,7 +8,7 @@ import (
 
 	"github.com/stbit/gopack/pkg/manager/hooks"
 	"github.com/stbit/gopack/pkg/manager/pkginfo"
-	"github.com/stbit/gopack/pkg/plugins"
+	"github.com/stbit/gopack/plugins"
 	"golang.org/x/tools/go/ast/astutil"
 )
 

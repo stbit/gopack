@@ -6,7 +6,7 @@ import (
 
 	"github.com/stbit/gopack/pkg/manager"
 	"github.com/stbit/gopack/pkg/manager/execute"
-	"github.com/stbit/gopack/pkg/plugins"
+	"github.com/stbit/gopack/plugins"
 )
 
 var (
