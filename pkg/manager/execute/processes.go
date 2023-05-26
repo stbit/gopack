@@ -15,10 +15,15 @@ import (
 type ProcessManager struct {
 	mu   sync.Mutex
 	ctxs []*exec.Cmd
-	fl   CommandsFlag
+	fl   []Command
 }
 
-func New(fl CommandsFlag) *ProcessManager {
+type Command struct {
+	Name string
+	Exec string
+}
+
+func New(fl []Command) *ProcessManager {
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 	m := &ProcessManager{
@@ -40,11 +45,11 @@ func (m *ProcessManager) Start() {
 
 	m.stop()
 
-	if m.fl.Len() > 0 {
-		m.ctxs = make([]*exec.Cmd, m.fl.Len())
+	if len(m.fl) > 0 {
+		m.ctxs = make([]*exec.Cmd, len(m.fl))
 
 		for i, v := range m.fl {
-			cmd := m.startCmd(v)
+			cmd := m.startCmd(v.Exec)
 			m.ctxs[i] = cmd
 			cmd.Stdout = os.Stdout
 			cmd.Stderr = os.Stderr

@@ -27,7 +27,7 @@ type Manager struct {
 	sourceFiles    []*pkginfo.FileInfo
 }
 
-func New(rootPath string, watch bool, fl execute.CommandsFlag) (*Manager, error) {
+func New(rootPath string, watch bool, commands []execute.Command) (*Manager, error) {
 	modPath := rootPath + string(os.PathSeparator) + "go.mod"
 	buf, err := ioutil.ReadFile(modPath)
 	if err != nil {
@@ -39,7 +39,7 @@ func New(rootPath string, watch bool, fl execute.CommandsFlag) (*Manager, error)
 		distPath:       rootPath + string(os.PathSeparator) + "dist",
 		watch:          watch,
 		ModuleName:     modfile.ModulePath(buf),
-		processManager: execute.New(fl),
+		processManager: execute.New(commands),
 		hooks:          hooks.NewManager(),
 		plugins:        make([]plugins.PluginRegister, 0),
 		sourceFiles:    make([]*pkginfo.FileInfo, 0),

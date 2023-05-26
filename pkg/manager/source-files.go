@@ -1,8 +1,8 @@
 package manager
 
 import (
-	"fmt"
 	"io/fs"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -55,7 +55,7 @@ func (m *Manager) loadSourceFiles() error {
 }
 
 func (m *Manager) Watch() {
-	fmt.Println(logger.Magenta("start watching..."))
+	log.Println(logger.Magenta("start watching..."))
 	fsnotify.New(m.rootPath, func(deletedFiles []string) {
 		for _, v := range deletedFiles {
 			i := slices.IndexFunc(m.sourceFiles, func(fi *pkginfo.FileInfo) bool {
