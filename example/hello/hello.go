@@ -8,7 +8,15 @@ import (
 	"github.com/stbit/gopack/example/utils"
 )
 
-type Profile struct{}
+type Profile struct {
+	Name       string
+	AppId      string
+	CountUsers int
+	NestedObj  struct {
+		Name         string
+		PeoplesStudy int
+	}
+}
 
 type IBase interface{}
 
@@ -72,6 +80,11 @@ func showHello() (string, func(int) int, Profile, IBase, *Profile, int, utils.RT
 		}
 	}
 
+	nt := struct {
+		Name       string
+		CountUsers int
+	}{"hello", 4}
+
 	s, _ := withError("hello")
 	q, _ := withError("hello test")
 	err := withOneError("sdfs")
@@ -87,7 +100,7 @@ func showHello() (string, func(int) int, Profile, IBase, *Profile, int, utils.RT
 	k, _ := f()()
 	r, _ := utils.Sum(1, 2)
 
-	fmt.Println(s, q, k, r, g1, g2)
+	fmt.Println(s, q, k, r, g1, g2, nt)
 
 	return "", nil, Profile{}, nil, nil, 0, utils.RTest{}, nil, nil
 }

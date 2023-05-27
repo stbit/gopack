@@ -9,4 +9,8 @@ require (
 	golang.org/x/tools v0.8.0
 )
 
-require golang.org/x/sys v0.7.0 // indirect
+require (
+	github.com/fatih/structtag v1.2.0 // indirect
+	github.com/iancoleman/strcase v0.2.0 // indirect
+	golang.org/x/sys v0.7.0 // indirect
+)
