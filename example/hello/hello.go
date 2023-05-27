@@ -10,7 +10,7 @@ import (
 
 type Profile struct {
 	Name       string
-	AppId      string
+	AppId      string `json:",omitempty,string"`
 	CountUsers int
 	NestedObj  struct {
 		Name         string

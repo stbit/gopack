@@ -1,8 +1,10 @@
 package jsontag
 
 import (
+	"fmt"
 	"go/ast"
 	"go/token"
+	"strings"
 
 	"github.com/fatih/structtag"
 	"github.com/stbit/gopack/pkg/manager/hooks"
@@ -65,7 +67,12 @@ func recurciveReplaceStructTags(f *pkginfo.FileContext, cn ast.Node, transform T
 					tag.FieldName = v.Names[0].Name
 					err := replaceFieldJsonName(v, tag, transform)
 					if err != nil {
-						panic(err)
+						tagName := ""
+						if v.Tag != nil {
+							tagName = v.Tag.Value
+						}
+
+						f.AddError(fmt.Errorf("file(%s) struct(%s) field(%s) tag(%s): %v", tag.FilePath, tag.StructName, tag.FieldName, tagName, err))
 					}
 				}
 			}
@@ -81,7 +88,7 @@ func replaceFieldJsonName(n *ast.Field, t *Tag, transform Transformer) error {
 	tagsStr := ""
 
 	if n.Tag != nil {
-		tagsStr = n.Tag.Value
+		tagsStr = strings.ReplaceAll(n.Tag.Value, "`", "")
 	}
 
 	tags, err := structtag.Parse(tagsStr)
@@ -107,11 +114,12 @@ func replaceFieldJsonName(n *ast.Field, t *Tag, transform Transformer) error {
 	}
 
 	tags.Set(jsonTag)
+	jsonVal := fmt.Sprintf("`%s`", jsonTag.String())
 
 	if n.Tag != nil {
-		n.Tag.Value = jsonTag.String()
+		n.Tag.Value = jsonVal
 	} else {
-		n.Tag = &ast.BasicLit{Kind: token.STRING, Value: jsonTag.String()}
+		n.Tag = &ast.BasicLit{Kind: token.STRING, Value: jsonVal}
 	}
 
 	return nil

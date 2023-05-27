@@ -66,14 +66,22 @@ func (m *Manager) parse() error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	start := time.Now()
+	hasError := false
 
 	if err := m.loadSourceFiles(); err != nil {
 		return err
 	}
 
 	for _, f := range m.sourceFiles {
+		f.Error = nil
+
 		if !f.IsSaved() {
 			m.hooks.EmitParseHook(hooks.HOOK_PARSE_FILE, f.FileContext)
+
+			if f.Error != nil {
+				logger.Error(f.Error)
+				hasError = true
+			}
 		}
 	}
 
@@ -83,7 +91,9 @@ func (m *Manager) parse() error {
 		}
 	}
 
-	log.Printf("compiled %s %s", logger.Success("successfully"), time.Since(start))
+	if !hasError {
+		log.Printf("compiled %s %s", logger.Success("successfully"), time.Since(start))
+	}
 
 	m.processManager.Start()
 

@@ -1,7 +1,6 @@
 package pkginfo
 
 import (
-	"errors"
 	"go/ast"
 	"go/parser"
 	"go/printer"
@@ -13,7 +12,6 @@ import (
 
 type FileInfo struct {
 	*FileContext
-	Error error
 	saved bool
 }
 
@@ -42,10 +40,6 @@ func (f *FileInfo) GetSourcePath() string {
 
 func (f *FileInfo) GetDistPath() string {
 	return f.distPath
-}
-
-func (f *FileInfo) AddError(err error) {
-	f.Error = errors.Join(f.Error, err)
 }
 
 func (f *FileInfo) IsSaved() bool {
