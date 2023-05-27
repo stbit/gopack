@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"go/ast"
 	"go/token"
+	"sort"
 	"strings"
 
 	"github.com/fatih/structtag"
@@ -114,7 +115,8 @@ func replaceFieldJsonName(n *ast.Field, t *Tag, transform Transformer) error {
 	}
 
 	tags.Set(jsonTag)
-	jsonVal := fmt.Sprintf("`%s`", jsonTag.String())
+	sort.Sort(tags)
+	jsonVal := fmt.Sprintf("`%s`", tags.String())
 
 	if n.Tag != nil {
 		n.Tag.Value = jsonVal
