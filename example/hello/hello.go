@@ -9,7 +9,7 @@ import (
 )
 
 type Profile struct {
-	Name       string
+	Name       string `validate:"required"`
 	AppId      string `json:",omitempty,string"`
 	CountUsers int
 	NestedObj  struct {
