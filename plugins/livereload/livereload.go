@@ -36,6 +36,10 @@ func New(opt Options) plugins.PluginRegister {
 				opt.Address = "localhost:32328"
 			}
 
+			http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
+				serveWs(hub, w, r, updatedAt)
+			})
+
 			http.HandleFunc("/livereload.js", func(w http.ResponseWriter, r *http.Request) {
 				w.Header().Add("Content-Type", "application/javascript")
 				w.Write([]byte(fmt.Sprintf(`
@@ -52,10 +56,6 @@ func New(opt Options) plugins.PluginRegister {
 
 					start();
 				`, opt.Address)))
-			})
-
-			http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
-				serveWs(hub, w, r, updatedAt)
 			})
 
 			log.Printf("%s %s", logger.Magenta("http livereload script:"), logger.Green(opt.Address+"/livereload.js"))
