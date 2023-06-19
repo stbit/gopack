@@ -72,6 +72,8 @@ func (m *Manager) parse() error {
 		return err
 	}
 
+	m.hooks.EmitHook(hooks.HOOK_BEFORE_COMPILE)
+
 	for _, f := range m.sourceFiles {
 		f.Error = nil
 
@@ -91,6 +93,8 @@ func (m *Manager) parse() error {
 		}
 	}
 
+	m.hooks.EmitHook(hooks.HOOK_AFTER_COMPILE)
+
 	if !hasError {
 		log.Printf("compiled %s %s", logger.Success("successfully"), time.Since(start))
 	}
@@ -105,7 +109,7 @@ func (m *Manager) Run() error {
 		logger.Fatal(err)
 	}
 
-	mc := plugins.NewManagerContext(m.hooks)
+	mc := plugins.NewManagerContext(m.hooks, m.watch)
 	for _, v := range m.plugins {
 		v(mc)
 	}
