@@ -22,6 +22,7 @@ func NewFileInfo(moduleName string, rootPath string, path string) *FileInfo {
 			distPath:   strings.Replace(path, rootPath, rootPath+string(os.PathSeparator)+"dist", 1),
 			ModuleName: moduleName,
 			Fset:       token.NewFileSet(),
+			nodesLines: make(map[ast.Node]int),
 		},
 	}
 
@@ -31,6 +32,7 @@ func NewFileInfo(moduleName string, rootPath string, path string) *FileInfo {
 	}
 
 	f.File = file
+	f.initNodesNumberLine()
 	return f
 }
 

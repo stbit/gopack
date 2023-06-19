@@ -13,6 +13,7 @@ type FileContext struct {
 	Error      error
 	Fset       *token.FileSet
 	File       *ast.File
+	nodesLines map[ast.Node]int
 }
 
 func (f *FileContext) GetSourcePath() string {
