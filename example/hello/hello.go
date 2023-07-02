@@ -53,6 +53,8 @@ func withOneError(s string) error {
 	return nil
 }
 
+// SetMaxIdleConns устанавливает максимальное количество соединений в пуле бездействия.
+// sqlDB.SetMaxIdleConns(50)
 func copy(src, dst string) (int64, error) {
 	sourceFileStat, _ := os.Stat(src)
 	if !sourceFileStat.Mode().IsRegular() {

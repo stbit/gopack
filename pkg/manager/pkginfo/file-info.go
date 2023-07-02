@@ -1,13 +1,14 @@
 package pkginfo
 
 import (
-	"go/ast"
 	"go/parser"
-	"go/printer"
 	"go/token"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/dave/dst"
+	"github.com/dave/dst/decorator"
 )
 
 type FileInfo struct {
@@ -22,11 +23,11 @@ func NewFileInfo(moduleName string, rootPath string, path string) *FileInfo {
 			distPath:   strings.Replace(path, rootPath, rootPath+string(os.PathSeparator)+"dist", 1),
 			ModuleName: moduleName,
 			Fset:       token.NewFileSet(),
-			nodesLines: make(map[ast.Node]int),
+			nodesLines: make(map[dst.Node]int),
 		},
 	}
 
-	file, err := parser.ParseFile(f.Fset, path, nil, parser.ParseComments)
+	file, err := decorator.ParseFile(f.Fset, path, nil, parser.ParseComments)
 	if err != nil {
 		f.AddError(err)
 	}
@@ -56,8 +57,7 @@ func (f *FileInfo) Save() error {
 		}
 	}
 
-	ast.SortImports(f.Fset, f.File)
-	f.File.Comments = []*ast.CommentGroup{}
+	// dst.SortImports(f.Fset, f.File)
 
 	file := f.File
 	distPath := f.GetDistPath()
@@ -73,7 +73,7 @@ func (f *FileInfo) Save() error {
 
 	defer of.Close()
 
-	if err = printer.Fprint(of, f.Fset, file); err != nil {
+	if err = decorator.Fprint(of, file); err != nil {
 		return err
 	}
 

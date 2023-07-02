@@ -1,7 +1,7 @@
 package pkginfo
 
 func (f *FileInfo) initNodesNumberLine() {
-	// ast.Inspect(f.File, func(n ast.Node) bool {
+	// dst.Inspect(f.File, func(n dst.Node) bool {
 	// 	defer func() {
 	// 		if err := recover(); err != nil {
 	// 			fmt.Println(err, n)

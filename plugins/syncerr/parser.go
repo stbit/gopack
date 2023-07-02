@@ -1,21 +1,21 @@
 package syncerr
 
 import (
-	"go/ast"
 	"go/printer"
 	"go/token"
 	"os"
 
+	"github.com/dave/dst"
+	"github.com/dave/dst/dstutil"
 	"github.com/stbit/gopack/pkg/manager/hooks"
 	"github.com/stbit/gopack/pkg/manager/pkginfo"
 	"github.com/stbit/gopack/plugins"
-	"golang.org/x/tools/go/ast/astutil"
 )
 
 var pluginName = "syncerr"
 
 type replceStmt interface {
-	replace(c *astutil.Cursor)
+	replace(c *dstutil.Cursor)
 }
 
 func New() plugins.PluginRegister {
@@ -32,9 +32,9 @@ func New() plugins.PluginRegister {
 func parseFile(f *pkginfo.FileContext) {
 	fe := newFileInfoExtende(f)
 
-	ast.Inspect(f.File, func(n ast.Node) bool {
+	dst.Inspect(f.File, func(n dst.Node) bool {
 		switch n.(type) {
-		case *ast.FuncDecl:
+		case *dst.FuncDecl:
 			findReplacementExpr(fe, fe.stmts, n)
 			return false
 		}
@@ -42,7 +42,7 @@ func parseFile(f *pkginfo.FileContext) {
 		return true
 	})
 
-	astutil.Apply(f.File, func(c *astutil.Cursor) bool {
+	dstutil.Apply(f.File, func(c *dstutil.Cursor) bool {
 		cn := c.Node()
 
 		defer func() {
@@ -66,16 +66,16 @@ func parseFile(f *pkginfo.FileContext) {
 	specs := fe.getZeroVariablesDecls()
 
 	if len(specs) > 0 {
-		f.File.Decls = append(f.File.Decls, &ast.GenDecl{
+		f.File.Decls = append(f.File.Decls, &dst.GenDecl{
 			Tok:   token.VAR,
 			Specs: specs,
 		})
 	}
 }
 
-func findReplacementExpr(f *fileInfoExtended, stmts map[ast.Node]replceStmt, n ast.Node) {
+func findReplacementExpr(f *fileInfoExtended, stmts map[dst.Node]replceStmt, n dst.Node) {
 	fnScope := newFunctionScope(f, n)
-	ast.Inspect(n, func(cn ast.Node) bool {
+	dst.Inspect(n, func(cn dst.Node) bool {
 		defer func() {
 			if r := recover(); r != nil {
 				if err := printer.Fprint(os.Stdout, f.Fset, cn); err != nil {
@@ -90,13 +90,13 @@ func findReplacementExpr(f *fileInfoExtended, stmts map[ast.Node]replceStmt, n a
 		}
 
 		switch x := cn.(type) {
-		case *ast.FuncDecl, *ast.FuncLit:
+		case *dst.FuncDecl, *dst.FuncLit:
 			findReplacementExpr(f, stmts, cn)
 			return false
 
-		case *ast.AssignStmt:
+		case *dst.AssignStmt:
 			switch i := x.Lhs[len(x.Lhs)-1].(type) {
-			case *ast.Ident:
+			case *dst.Ident:
 				if i.Name == "_" {
 					stmts[cn] = newReplceCallExprStmt(f, fnScope, cn, x.Lhs, x.Rhs)
 				}

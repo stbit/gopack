@@ -2,8 +2,9 @@ package pkginfo
 
 import (
 	"errors"
-	"go/ast"
 	"go/token"
+
+	"github.com/dave/dst"
 )
 
 type FileContext struct {
@@ -12,8 +13,8 @@ type FileContext struct {
 	ModuleName string
 	Error      error
 	Fset       *token.FileSet
-	File       *ast.File
-	nodesLines map[ast.Node]int
+	File       *dst.File
+	nodesLines map[dst.Node]int
 }
 
 func (f *FileContext) GetSourcePath() string {

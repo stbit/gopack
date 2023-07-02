@@ -2,11 +2,11 @@ package jsontag
 
 import (
 	"fmt"
-	"go/ast"
 	"go/token"
 	"sort"
 	"strings"
 
+	"github.com/dave/dst"
 	"github.com/fatih/structtag"
 	"github.com/stbit/gopack/pkg/manager/hooks"
 	"github.com/stbit/gopack/pkg/manager/pkginfo"
@@ -37,25 +37,25 @@ func New(transform Transformer) plugins.PluginRegister {
 	}
 }
 
-func recurciveReplaceStructTags(f *pkginfo.FileContext, cn ast.Node, transform Transformer) {
-	ast.Inspect(cn, func(n ast.Node) bool {
+func recurciveReplaceStructTags(f *pkginfo.FileContext, cn dst.Node, transform Transformer) {
+	dst.Inspect(cn, func(n dst.Node) bool {
 		var (
 			structName string
-			t          *ast.StructType
+			t          *dst.StructType
 		)
 
 		switch s := n.(type) {
-		case *ast.TypeSpec:
-			if k, ok := s.Type.(*ast.StructType); ok {
+		case *dst.TypeSpec:
+			if k, ok := s.Type.(*dst.StructType); ok {
 				structName = s.Name.Name
 				t = k
 			}
-		case *ast.Field:
-			if k, ok := s.Type.(*ast.StructType); ok {
+		case *dst.Field:
+			if k, ok := s.Type.(*dst.StructType); ok {
 				structName = s.Names[0].Name
 				t = k
 			}
-		case *ast.StructType:
+		case *dst.StructType:
 			t = s
 		}
 
@@ -85,7 +85,7 @@ func recurciveReplaceStructTags(f *pkginfo.FileContext, cn ast.Node, transform T
 	})
 }
 
-func replaceFieldJsonName(n *ast.Field, t *Tag, transform Transformer) error {
+func replaceFieldJsonName(n *dst.Field, t *Tag, transform Transformer) error {
 	tagsStr := ""
 
 	if n.Tag != nil {
@@ -121,7 +121,7 @@ func replaceFieldJsonName(n *ast.Field, t *Tag, transform Transformer) error {
 	if n.Tag != nil {
 		n.Tag.Value = jsonVal
 	} else {
-		n.Tag = &ast.BasicLit{Kind: token.STRING, Value: jsonVal}
+		n.Tag = &dst.BasicLit{Kind: token.STRING, Value: jsonVal}
 	}
 
 	return nil

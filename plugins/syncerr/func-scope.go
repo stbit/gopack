@@ -1,28 +1,29 @@
 package syncerr
 
 import (
-	"go/ast"
 	"strconv"
+
+	"github.com/dave/dst"
 )
 
 type functionScope struct {
-	node    ast.Node
+	node    dst.Node
 	errId   int
-	results *ast.FieldList
+	results *dst.FieldList
 }
 
-func newFunctionScope(p *fileInfoExtended, n ast.Node) *functionScope {
+func newFunctionScope(p *fileInfoExtended, n dst.Node) *functionScope {
 	fn := &functionScope{node: n}
 	fn.results = fn.getResults()
 
 	return fn
 }
 
-func (f *functionScope) getResults() *ast.FieldList {
+func (f *functionScope) getResults() *dst.FieldList {
 	switch x := f.node.(type) {
-	case *ast.FuncLit:
+	case *dst.FuncLit:
 		return x.Type.Results
-	case *ast.FuncDecl:
+	case *dst.FuncDecl:
 		return x.Type.Results
 	}
 
@@ -31,9 +32,9 @@ func (f *functionScope) getResults() *ast.FieldList {
 
 func (f *functionScope) getName() string {
 	switch x := f.node.(type) {
-	case *ast.FuncLit:
+	case *dst.FuncLit:
 		return "anonimus"
-	case *ast.FuncDecl:
+	case *dst.FuncDecl:
 		return x.Name.Name
 	}
 
@@ -58,7 +59,7 @@ func (f *functionScope) hasErrorResults() bool {
 
 	k := r.List[len(r.List)-1]
 
-	if x, ok := k.Type.(*ast.Ident); ok && x.Name == "error" {
+	if x, ok := k.Type.(*dst.Ident); ok && x.Name == "error" {
 		return true
 	}
 

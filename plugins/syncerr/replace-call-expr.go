@@ -2,24 +2,24 @@ package syncerr
 
 import (
 	"fmt"
-	"go/ast"
 	"go/token"
 	"strconv"
 
-	"golang.org/x/tools/go/ast/astutil"
+	"github.com/dave/dst"
+	"github.com/dave/dst/dstutil"
 )
 
 var zeroVariableId = 0
 
 type replceCallExprStmt struct {
-	nodeAfterInsertReturn ast.Node
+	nodeAfterInsertReturn dst.Node
 	fileInfo              *fileInfoExtended
 	fnScope               *functionScope
-	lhs                   []ast.Expr
-	rhs                   []ast.Expr
+	lhs                   []dst.Expr
+	rhs                   []dst.Expr
 }
 
-func newReplceCallExprStmt(fe *fileInfoExtended, f *functionScope, n ast.Node, lhs []ast.Expr, rhs []ast.Expr) *replceCallExprStmt {
+func newReplceCallExprStmt(fe *fileInfoExtended, f *functionScope, n dst.Node, lhs []dst.Expr, rhs []dst.Expr) *replceCallExprStmt {
 	return &replceCallExprStmt{
 		nodeAfterInsertReturn: n,
 		lhs:                   lhs,
@@ -29,41 +29,41 @@ func newReplceCallExprStmt(fe *fileInfoExtended, f *functionScope, n ast.Node, l
 	}
 }
 
-func (s *replceCallExprStmt) replace(c *astutil.Cursor) {
+func (s *replceCallExprStmt) replace(c *dstutil.Cursor) {
 	if !s.fnScope.hasErrorResults() {
 		panic(fmt.Errorf("func %s not return error", s.fnScope.getName()))
 	}
 
-	errIdent := s.lhs[len(s.lhs)-1].(*ast.Ident)
+	errIdent := s.lhs[len(s.lhs)-1].(*dst.Ident)
 	errIdent.Name = s.fnScope.getNextErrorName()
 	ts := s.fnScope.getResults()
 	tslen := len(ts.List)
-	results := make([]ast.Expr, len(ts.List))
+	results := make([]dst.Expr, len(ts.List))
 
 	for i, t := range ts.List {
-		results[i] = &ast.Ident{Name: s.getDefaultValue(t, errIdent.Name, tslen-1 == i)}
+		results[i] = &dst.Ident{Name: s.getDefaultValue(t, errIdent.Name, tslen-1 == i)}
 	}
 
-	c.Replace(&ast.AssignStmt{
+	c.Replace(&dst.AssignStmt{
 		Lhs: s.lhs,
 		Tok: token.DEFINE,
 		Rhs: s.rhs,
 	})
 
-	nameErr := s.lhs[len(s.lhs)-1].(*ast.Ident).Name
+	nameErr := s.lhs[len(s.lhs)-1].(*dst.Ident).Name
 
-	c.InsertAfter(&ast.IfStmt{
-		Cond: &ast.BinaryExpr{
+	c.InsertAfter(&dst.IfStmt{
+		Cond: &dst.BinaryExpr{
 			// err
-			X: &ast.Ident{Name: nameErr},
+			X: &dst.Ident{Name: nameErr},
 			// !=
 			Op: token.NEQ,
 			// nil
-			Y: &ast.Ident{Name: "nil"},
+			Y: &dst.Ident{Name: "nil"},
 		},
-		Body: &ast.BlockStmt{
-			List: []ast.Stmt{
-				&ast.ReturnStmt{
+		Body: &dst.BlockStmt{
+			List: []dst.Stmt{
+				&dst.ReturnStmt{
 					Results: results,
 				},
 			},
@@ -90,12 +90,12 @@ func (r *replceCallExprStmt) getZeroValue(name string) string {
 	return zv.variable
 }
 
-func (r *replceCallExprStmt) getDefaultValue(f *ast.Field, errName string, isLast bool) string {
+func (r *replceCallExprStmt) getDefaultValue(f *dst.Field, errName string, isLast bool) string {
 	switch x := f.Type.(type) {
-	case *ast.StarExpr, *ast.ArrayType, *ast.FuncType:
+	case *dst.StarExpr, *dst.ArrayType, *dst.FuncType:
 		return "nil"
 
-	case *ast.Ident:
+	case *dst.Ident:
 		if isLast && x.Name == "error" {
 			return errName
 		} else {
@@ -107,8 +107,8 @@ func (r *replceCallExprStmt) getDefaultValue(f *ast.Field, errName string, isLas
 			return r.getZeroValue(x.Name)
 		}
 
-	case *ast.SelectorExpr:
-		if i, ok := x.X.(*ast.Ident); ok {
+	case *dst.SelectorExpr:
+		if i, ok := x.X.(*dst.Ident); ok {
 			return r.getZeroValue(i.Name + "." + x.Sel.Name)
 		}
 	}
