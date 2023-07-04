@@ -3,11 +3,14 @@ package pkginfo
 import (
 	"errors"
 	"go/token"
+	"os"
+	"strings"
 
 	"github.com/dave/dst"
 )
 
 type FileContext struct {
+	rootPath   string
 	sourcePath string
 	distPath   string
 	ModuleName string
@@ -19,6 +22,10 @@ type FileContext struct {
 
 func (f *FileContext) GetSourcePath() string {
 	return f.sourcePath
+}
+
+func (f *FileContext) GetRelativeSourcePath() string {
+	return strings.Replace(f.sourcePath, f.rootPath+string(os.PathSeparator), "", 1)
 }
 
 func (f *FileContext) GetDistPath() string {

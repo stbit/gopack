@@ -7,6 +7,7 @@ import (
 	"github.com/iancoleman/strcase"
 	"github.com/stbit/gopack"
 	"github.com/stbit/gopack/plugins"
+	"github.com/stbit/gopack/plugins/errstack"
 	"github.com/stbit/gopack/plugins/jsontag"
 	"github.com/stbit/gopack/plugins/livereload"
 	"github.com/stbit/gopack/plugins/syncerr"
@@ -41,6 +42,7 @@ func main() {
 
 				return strcase.ToLowerCamel(tag.FieldName), tag.Options
 			}),
+			errstack.New(),
 			livereload.New(livereload.Options{}),
 		},
 	})

@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 
+	"github.com/rotisserie/eris"
 	"github.com/stbit/gopack/example/utils"
 )
 
@@ -39,6 +40,10 @@ func withInterface() error {
 	withError("sdfds")
 
 	return nil
+}
+
+func GetError() error {
+	return eris.New("hello")
 }
 
 func withOneError(s string) error {

@@ -1,20 +1,23 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
-	"time"
 
+	"github.com/rotisserie/eris"
 	"github.com/stbit/gopack/example/hello"
 )
 
 func main() {
-	r, err := hello.WithStringError("hi")
+	_, err := hello.WithStringError("hi")
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println("sdfsdf244")
+	err = hello.GetError()
+	js, err := json.Marshal(eris.ToJSON(err, true))
+	if err != nil {
+		panic(err)
+	}
 
-	time.Sleep(5 * time.Second)
-
-	fmt.Println("hell23o234", r)
+	fmt.Println(string(js))
 }

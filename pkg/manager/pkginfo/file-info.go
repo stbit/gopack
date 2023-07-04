@@ -5,6 +5,7 @@ import (
 	"go/token"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/dave/dst"
@@ -19,6 +20,7 @@ type FileInfo struct {
 func NewFileInfo(moduleName string, rootPath string, path string) *FileInfo {
 	f := &FileInfo{
 		FileContext: &FileContext{
+			rootPath:   rootPath,
 			sourcePath: path,
 			distPath:   strings.Replace(path, rootPath, rootPath+string(os.PathSeparator)+"dist", 1),
 			ModuleName: moduleName,
@@ -27,7 +29,8 @@ func NewFileInfo(moduleName string, rootPath string, path string) *FileInfo {
 		},
 	}
 
-	file, err := decorator.ParseFile(f.Fset, path, nil, parser.ParseComments)
+	dec := decorator.NewDecoratorWithImports(f.Fset, "", nil)
+	file, err := dec.ParseFile(path, nil, parser.ParseComments)
 	if err != nil {
 		f.AddError(err)
 	}
@@ -57,8 +60,6 @@ func (f *FileInfo) Save() error {
 		}
 	}
 
-	// dst.SortImports(f.Fset, f.File)
-
 	file := f.File
 	distPath := f.GetDistPath()
 
@@ -80,4 +81,25 @@ func (f *FileInfo) Save() error {
 	f.saved = true
 
 	return nil
+}
+
+func (f *FileContext) AddImport(path string) {
+	for i := 0; i < len(f.File.Decls); i++ {
+		d := f.File.Decls[i]
+
+		switch d.(type) {
+		case *dst.FuncDecl:
+			// No action
+		case *dst.GenDecl:
+			dd := d.(*dst.GenDecl)
+
+			// IMPORT Declarations
+			if dd.Tok == token.IMPORT {
+				// Add the new import
+				dd.Specs = append(dd.Specs, &dst.ImportSpec{
+					Path: &dst.BasicLit{Kind: token.STRING, Value: strconv.Quote(path)},
+				})
+			}
+		}
+	}
 }
