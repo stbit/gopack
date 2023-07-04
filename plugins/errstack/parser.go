@@ -80,7 +80,7 @@ func findFuncExpr(f *fileInfoExtended, n dst.Node) {
 					x.Results[len(x.Results)-1] = &dst.CallExpr{
 						Args: []dst.Expr{
 							last,
-							dst.NewIdent("errstack_empty"),
+							dst.NewIdent(f.varName),
 						},
 						Fun: &dst.SelectorExpr{
 							X:   dst.NewIdent("eris"),
