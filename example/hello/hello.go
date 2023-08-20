@@ -32,8 +32,8 @@ func withError(s string) (string, error) {
 	return s + "1", nil
 }
 
-func WithStringError(s string) (string, error) {
-	return s + "1", nil
+func WithStringError(s string) (str string, err error) {
+	return withError(s)
 }
 
 func withInterface() error {

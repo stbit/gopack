@@ -75,7 +75,7 @@ func findFuncExpr(f *fileInfoExtended, n dst.Node) {
 			if x.Results != nil {
 				last := x.Results[len(x.Results)-1]
 
-				if fnScope.hasErrorResults() && canAddWrap(last) {
+				if fnScope.hasErrorResults() && canAddWrap(last) && len(fnScope.getResults().List) == len(fnScope.getParams().List) {
 					f.SetWrap()
 					x.Results[len(x.Results)-1] = &dst.CallExpr{
 						Args: []dst.Expr{
